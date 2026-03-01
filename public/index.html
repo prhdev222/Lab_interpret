@@ -1202,7 +1202,7 @@
       let html = '<table class="user-table"><tr><th>ชื่อผู้ใช้</th><th>ชื่อแสดง</th><th>ตำแหน่ง</th><th></th></tr>';
       for (const u of data.users) {
         html += `<tr><td>${u.username}</td><td>${u.display_name}</td><td>${roles[u.role] || u.role}</td>
-    <td>${u.is_admin ? '👑' : '<button class="del-btn" onclick="deleteUser(' + u.id + ')">ลบ</button>'}</td></tr>`;
+    <td><button class="del-btn" onclick="resetPin(${u.id},'${u.username}')">🔑 เปลี่ยน PIN</button> ${u.is_admin ? '👑' : '<button class="del-btn" onclick="deleteUser(' + u.id + ')">ลบ</button>'}</td></tr>`;
       }
       html += '</table>';
       document.getElementById('userList').innerHTML = html;
@@ -1234,6 +1234,17 @@
         body: JSON.stringify({ action: 'delete', userId: id })
       });
       showAdminModal();
+    }
+
+    async function resetPin(id, username) {
+      const newPin = prompt(`กรอก PIN ใหม่สำหรับ ${username} (อย่างน้อย 4 หลัก):`);
+      if (!newPin || newPin.length < 4) { if (newPin !== null) alert('PIN ต้องอย่างน้อย 4 หลัก'); return; }
+      const res = await fetch(API + '/api/admin/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'reset_pin', userId: id, pin: newPin })
+      });
+      const data = await res.json();
+      if (data.error) alert(data.error); else alert(`✅ เปลี่ยน PIN ของ ${username} แล้ว`);
     }
 
     // ===== Patterns =====
