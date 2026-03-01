@@ -38,6 +38,18 @@ async function initDB() {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Create default admin if no users exist
   const count = await db.execute("SELECT COUNT(*) as c FROM users");
   if (Number(count.rows[0].c) === 0) {
@@ -69,14 +81,9 @@ function generateToken(): string {
     .join("");
 }
 
-// ===== Session Store (in-memory, resets on deploy) =====
-const sessions = new Map<string, { userId: number; username: string; role: string; displayName: string; expiresAt: number }>();
-
-function cleanSessions() {
-  const now = Date.now();
-  for (const [token, session] of sessions) {
-    if (session.expiresAt < now) sessions.delete(token);
-  }
+// ===== Session Store (Turso DB — persists across isolates) =====
+async function cleanSessions() {
+  await db.execute({ sql: "DELETE FROM sessions WHERE expires_at < ?", args: [Date.now()] });
 }
 
 // ===== CORS & Response Helpers =====
@@ -93,16 +100,21 @@ function json(data: unknown, status = 200) {
   });
 }
 
-function getSession(req: Request) {
+async function getSession(req: Request) {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
   const token = auth.slice(7);
-  const session = sessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    sessions.delete(token);
+  const result = await db.execute({
+    sql: "SELECT user_id, username, role, display_name, expires_at FROM sessions WHERE token = ?",
+    args: [token],
+  });
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  if (Number(row.expires_at) < Date.now()) {
+    await db.execute({ sql: "DELETE FROM sessions WHERE token = ?", args: [token] });
     return null;
   }
-  return session;
+  return { userId: Number(row.user_id), username: String(row.username), role: String(row.role), displayName: String(row.display_name) };
 }
 
 // ===== API Routes =====
@@ -126,15 +138,12 @@ async function handleLogin(req: Request) {
   const token = generateToken();
   const SESSION_HOURS = 8; // session lasts 8 hours (1 shift)
 
-  sessions.set(token, {
-    userId: Number(user.id),
-    username: String(user.username),
-    role: String(user.role),
-    displayName: String(user.display_name),
-    expiresAt: Date.now() + SESSION_HOURS * 60 * 60 * 1000,
+  await db.execute({
+    sql: "INSERT INTO sessions (token, user_id, username, role, display_name, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+    args: [token, Number(user.id), String(user.username), String(user.role), String(user.display_name), Date.now() + SESSION_HOURS * 60 * 60 * 1000],
   });
 
-  cleanSessions();
+  await cleanSessions();
 
   return json({
     token,
@@ -149,7 +158,7 @@ async function handleLogin(req: Request) {
 
 // POST /api/generate — proxy to OpenRouter (API Key hidden server-side)
 async function handleGenerate(req: Request) {
-  const session = getSession(req);
+  const session = await getSession(req);
   if (!session) return json({ error: "กรุณา login ก่อน" }, 401);
 
   const apiKey = Deno.env.get("OPENROUTER_API_KEY");
@@ -200,7 +209,7 @@ async function handleGenerate(req: Request) {
 
 // POST /api/admin/users — manage users (admin only)
 async function handleAdminUsers(req: Request) {
-  const session = getSession(req);
+  const session = await getSession(req);
   if (!session) return json({ error: "กรุณา login ก่อน" }, 401);
 
   // Check admin
@@ -251,16 +260,18 @@ async function handleAdminUsers(req: Request) {
 }
 
 // GET /api/me — check session
-function handleMe(req: Request) {
-  const session = getSession(req);
+async function handleMe(req: Request) {
+  const session = await getSession(req);
   if (!session) return json({ error: "not logged in" }, 401);
   return json({ user: { username: session.username, role: session.role, displayName: session.displayName } });
 }
 
 // POST /api/logout
-function handleLogout(req: Request) {
+async function handleLogout(req: Request) {
   const auth = req.headers.get("Authorization");
-  if (auth?.startsWith("Bearer ")) sessions.delete(auth.slice(7));
+  if (auth?.startsWith("Bearer ")) {
+    await db.execute({ sql: "DELETE FROM sessions WHERE token = ?", args: [auth.slice(7)] });
+  }
   return json({ success: true });
 }
 
