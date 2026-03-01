@@ -221,7 +221,7 @@ async function handleAdminUsers(req: Request) {
     return json({ error: "ไม่มีสิทธิ์ admin" }, 403);
   }
 
-  const { action, username, pin, role, displayName, userId } = await req.json();
+  const { action, username, pin, role, displayName, userId, confirmPin } = await req.json();
 
   if (action === "list") {
     const users = await db.execute("SELECT id, username, role, display_name, is_admin, created_at FROM users ORDER BY id");
@@ -251,6 +251,16 @@ async function handleAdminUsers(req: Request) {
 
   if (action === "reset_pin") {
     if (!userId || !pin) return json({ error: "ระบุ userId และ PIN ใหม่" }, 400);
+    // Require admin's current PIN for security
+    if (!confirmPin) return json({ error: "กรุณายืนยัน PIN ของ admin" }, 400);
+    const adminPinHash = await hashPin(confirmPin);
+    const adminCheck2 = await db.execute({
+      sql: "SELECT pin_hash FROM users WHERE id = ?",
+      args: [session.userId],
+    });
+    if (!adminCheck2.rows[0] || adminCheck2.rows[0].pin_hash !== adminPinHash) {
+      return json({ error: "PIN ของ admin ไม่ถูกต้อง" }, 403);
+    }
     const hash = await hashPin(pin);
     await db.execute({ sql: "UPDATE users SET pin_hash = ? WHERE id = ?", args: [hash, userId] });
     return json({ success: true });

@@ -1237,11 +1237,13 @@
     }
 
     async function resetPin(id, username) {
+      const myPin = prompt('🔐 ยืนยันตัวตน: กรอก PIN ของคุณ (admin) ก่อน:');
+      if (!myPin) return;
       const newPin = prompt(`กรอก PIN ใหม่สำหรับ ${username} (อย่างน้อย 4 หลัก):`);
       if (!newPin || newPin.length < 4) { if (newPin !== null) alert('PIN ต้องอย่างน้อย 4 หลัก'); return; }
       const res = await fetch(API + '/api/admin/users', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ action: 'reset_pin', userId: id, pin: newPin })
+        body: JSON.stringify({ action: 'reset_pin', userId: id, pin: newPin, confirmPin: myPin })
       });
       const data = await res.json();
       if (data.error) alert(data.error); else alert(`✅ เปลี่ยน PIN ของ ${username} แล้ว`);
