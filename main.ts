@@ -4,8 +4,12 @@
 import { createClient } from "npm:@libsql/client@0.14.0";
 
 // ===== Turso DB =====
+const tursoUrl = Deno.env.get("TURSO_URL");
+if (!tursoUrl) {
+  throw new Error("❌ TURSO_URL environment variable is required! Set it in Deno Deploy Settings → Environment Variables.");
+}
 const db = createClient({
-  url: Deno.env.get("TURSO_URL") || "file:local.db",
+  url: tursoUrl,
   authToken: Deno.env.get("TURSO_AUTH_TOKEN") || undefined,
 });
 
