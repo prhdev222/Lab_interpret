@@ -894,7 +894,10 @@
           onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password">
         <button class="lock-btn" onclick="doLogin()" id="loginBtn">🔓 เข้าใช้งาน</button>
         <div class="lock-error" id="loginError"></div>
-        <div class="lock-secure">🔒 API Key ไม่ได้เก็บบน browser — ปลอดภัย</div>
+        <div class="lock-secure" style="flex-direction:column;gap:2px;">
+          <div>พัฒนาโดย อายุรกรรม โรงพยาบาลสงฆ์</div>
+          <div style="font-size:11px;opacity:0.7;">© 2026 directed by Uradev</div>
+        </div>
       </div>
     </div>
   </div>
