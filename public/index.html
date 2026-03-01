@@ -1,518 +1,1256 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab Interpreter — แปลผล Lab สำหรับผู้ป่วย</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg:#F0F4F3; --card:#FFF; --primary:#1A6B5A; --primary-light:#E8F5F1;
-    --primary-hover:#145649; --accent:#C8993A; --accent-light:#FFF8E7;
-    --text:#2C3E3A; --text-light:#6B8078; --border:#D1DDD9;
-    --danger:#C0392B; --success:#27AE60;
-    --shadow:0 2px 12px rgba(26,107,90,0.08); --radius:12px;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.7;}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Interpreter — แปลผล Lab สำหรับผู้ป่วย</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F0F4F3;
+      --card: #FFF;
+      --primary: #1A6B5A;
+      --primary-light: #E8F5F1;
+      --primary-hover: #145649;
+      --accent: #C8993A;
+      --accent-light: #FFF8E7;
+      --text: #2C3E3A;
+      --text-light: #6B8078;
+      --border: #D1DDD9;
+      --danger: #C0392B;
+      --success: #27AE60;
+      --shadow: 0 2px 12px rgba(26, 107, 90, 0.08);
+      --radius: 12px;
+    }
 
-  /* Lock Screen */
-  .lock-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A6B5A,#0D3D32);display:flex;align-items:center;justify-content:center;padding:20px;}
-  .lock-screen.hidden{display:none;}
-  .lock-card{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
-  .lock-card h2{font-size:22px;color:var(--primary);margin:8px 0 4px;}
-  .lock-card .sub{font-size:13px;color:var(--text-light);margin-bottom:24px;}
-  .lock-form{text-align:left;}
-  .lock-form label{display:block;font-size:13px;font-weight:600;color:var(--text-light);margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.5px;}
-  .lock-form input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;font-family:inherit;font-size:15px;background:#FAFCFB;}
-  .lock-form input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,90,0.1);}
-  .lock-form input.pin-input{font-size:24px;text-align:center;letter-spacing:8px;font-weight:700;}
-  .lock-btn{width:100%;padding:14px;margin-top:20px;background:linear-gradient(135deg,var(--primary),#2D8B78);color:white;border:none;border-radius:10px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(26,107,90,0.3);}
-  .lock-btn:hover{transform:translateY(-1px);}
-  .lock-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
-  .lock-error{color:var(--danger);font-size:13px;text-align:center;min-height:20px;margin-top:10px;}
-  .lock-secure{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:12px;color:var(--text-light);}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  /* Header */
-  .header{background:linear-gradient(135deg,#1A6B5A 0%,#2D8B78 50%,#1A6B5A 100%);padding:16px 24px;color:white;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(26,107,90,0.25);position:sticky;top:0;z-index:100;}
-  .header-left{display:flex;align-items:center;gap:12px;}
-  .header-icon{width:40px;height:40px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
-  .header h1{font-size:18px;font-weight:700;}
-  .header .user-info{font-size:12px;opacity:0.85;}
-  .header-right{display:flex;align-items:center;gap:8px;}
-  .hdr-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;}
-  .hdr-btn:hover{background:rgba(255,255,255,0.25);}
-  .monk-badge{display:none;background:var(--accent);color:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;}
-  .monk-badge.show{display:inline-block;}
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+    }
 
-  /* Layout */
-  .container{max-width:1100px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  @media(max-width:768px){.container{grid-template-columns:1fr;padding:14px;}}
+    /* Lock Screen */
+    .lock-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: linear-gradient(135deg, #1A6B5A, #0D3D32);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
 
-  /* Cards */
-  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;}
-  .card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--primary);background:var(--primary-light);}
-  .card-body{padding:18px;}
+    .lock-screen.hidden {
+      display: none;
+    }
 
-  /* Forms */
-  label{display:block;font-size:12px;font-weight:600;color:var(--text-light);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
-  textarea,select,input[type="text"]{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);background:#FAFCFB;line-height:1.6;}
-  textarea:focus,select:focus,input[type="text"]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,90,0.1);background:white;}
-  textarea{resize:vertical;min-height:100px;}
-  textarea.large{min-height:180px;}
-  .form-group{margin-bottom:14px;}
+    .lock-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
 
-  /* Patterns */
-  .pattern-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
-  .pattern-option{border:2px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:all 0.2s;background:white;}
-  .pattern-option:hover{border-color:var(--primary);background:var(--primary-light);}
-  .pattern-option.active{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 3px rgba(26,107,90,0.1);}
-  .pattern-name{font-weight:700;font-size:13px;color:var(--primary);}
-  .pattern-desc{font-size:11px;color:var(--text-light);line-height:1.3;}
+    .lock-card h2 {
+      font-size: 22px;
+      color: var(--primary);
+      margin: 8px 0 4px;
+    }
 
-  /* Monk Toggle */
-  .monk-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.25s;background:white;user-select:none;margin:10px 0;}
-  .monk-toggle:hover{border-color:var(--accent);background:#FFFDF5;}
-  .monk-toggle.active{border-color:var(--accent);background:var(--accent-light);box-shadow:0 0 0 3px rgba(200,153,58,0.12);}
-  .monk-toggle-left{display:flex;align-items:center;gap:10px;}
-  .monk-title{font-weight:700;font-size:13px;color:#8B6914;}
-  .monk-sub{font-size:11px;color:var(--text-light);}
-  .toggle-sw{width:44px;height:26px;background:#D1DDD9;border-radius:13px;position:relative;transition:0.25s;flex-shrink:0;}
-  .monk-toggle.active .toggle-sw{background:var(--accent);}
-  .toggle-knob{width:20px;height:20px;background:white;border-radius:50%;position:absolute;top:3px;left:3px;transition:0.25s;box-shadow:0 1px 3px rgba(0,0,0,0.15);}
-  .monk-toggle.active .toggle-knob{transform:translateX(18px);}
+    .lock-card .sub {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 24px;
+    }
 
-  /* Custom Pattern */
-  .custom-editor{display:none;margin-bottom:10px;padding:12px;background:#F7FAF9;border-radius:8px;border:1px dashed var(--border);}
-  .custom-editor.show{display:block;}
-  .custom-editor textarea{font-size:13px;min-height:120px;}
-  .section-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
-  .section-tag{background:var(--primary);color:white;padding:2px 8px;border-radius:16px;font-size:11px;cursor:pointer;border:none;font-family:inherit;}
-  .section-tag:hover{background:var(--primary-hover);}
+    .lock-form {
+      text-align: left;
+    }
 
-  /* Notice */
-  .notice{background:#FEF5E7;border:1px solid #F0C78A;border-radius:8px;padding:8px 12px;font-size:12px;color:#8B5E1A;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+    .lock-form label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-light);
+      margin: 12px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-  /* Buttons */
-  .btn-primary{background:linear-gradient(135deg,var(--primary),#2D8B78);color:white;border:none;padding:13px;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 15px rgba(26,107,90,0.3);}
-  .btn-primary:hover{transform:translateY(-1px);}
-  .btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
-  .btn-secondary{background:white;color:var(--primary);border:2px solid var(--primary);padding:8px 16px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
-  .btn-secondary:hover{background:var(--primary-light);}
-  .btn-row{display:flex;gap:8px;}
-  .btn-row .btn-secondary{flex:1;justify-content:center;}
-  .btn-print-big{background:var(--primary)!important;color:white!important;border-color:var(--primary)!important;font-weight:700;flex:1.5;}
+    .lock-form input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 15px;
+      background: #FAFCFB;
+    }
 
-  /* Review Workflow */
-  .step-banner{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:18px;}
-  .step-title{font-weight:700;font-size:13px;}
-  .step-desc{font-size:11px;opacity:0.8;margin-top:1px;}
-  .draft-banner{background:#FEF5E7;border:1.5px solid #F0C78A;color:#8B5E1A;}
-  .confirmed-banner{background:#E8F8F0;border:1.5px solid #7DCEA0;color:#1A6B3C;}
-  .edit-area{width:100%;min-height:320px;border:2px solid var(--accent);border-radius:8px;padding:14px;font-family:inherit;font-size:14px;line-height:1.8;color:var(--text);background:#FFFDF5;resize:vertical;}
-  .edit-area:focus{outline:none;border-color:var(--primary);background:white;}
-  .confirm-section{margin-top:14px;padding:14px;background:#F7FAF9;border-radius:8px;border:1px solid var(--border);}
-  .confirm-row{display:flex;gap:10px;margin-bottom:12px;}
-  @media(max-width:768px){.confirm-row{flex-direction:column;}}
-  .btn-confirm{width:100%;padding:13px;background:linear-gradient(135deg,#27AE60,#2ECC71);color:white;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(39,174,96,0.3);}
-  .btn-confirm:hover{transform:translateY(-1px);}
-  .confirm-hint{font-size:11px;color:var(--text-light);text-align:center;margin-top:6px;}
-  .result-text{white-space:pre-wrap;line-height:1.8;font-size:14px;}
+    .lock-form input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 107, 90, 0.1);
+    }
 
-  /* Loading & Status */
-  .loading{display:none;text-align:center;padding:40px;}
-  .loading.show{display:block;}
-  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .result-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:280px;color:var(--text-light);text-align:center;padding:30px;}
-  .result-placeholder .big-icon{font-size:44px;margin-bottom:10px;opacity:0.4;}
-  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
-  .status-dot.ready{background:var(--success);}
+    .lock-form input.pin-input {
+      font-size: 24px;
+      text-align: center;
+      letter-spacing: 8px;
+      font-weight: 700;
+    }
 
-  /* Admin Modal */
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
-  .modal-overlay.show{display:flex;}
-  .modal{background:white;border-radius:16px;padding:24px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
-  .modal h3{font-size:17px;margin-bottom:6px;color:var(--primary);}
-  .modal p{font-size:12px;color:var(--text-light);margin-bottom:14px;}
-  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
-  .modal-btns button{padding:8px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;}
-  .modal-btns .cancel{background:#EEF2F0;color:var(--text);}
-  .modal-btns .save{background:var(--primary);color:white;}
-  .user-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0;}
-  .user-table th{background:var(--primary-light);color:var(--primary);padding:8px;text-align:left;font-size:12px;}
-  .user-table td{padding:8px;border-bottom:1px solid var(--border);}
-  .user-table .del-btn{color:var(--danger);cursor:pointer;background:none;border:none;font-size:12px;font-family:inherit;text-decoration:underline;}
+    .lock-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      background: linear-gradient(135deg, var(--primary), #2D8B78);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(26, 107, 90, 0.3);
+    }
 
-  /* Print */
-  @media print{
-    body{background:white;}
-    .header,.input-panel,.modal-overlay,.btn-row,.no-print,.lock-screen,#reviewStep,.step-banner{display:none!important;}
-    .container{display:block;max-width:100%;padding:0;}
-    .card{box-shadow:none;border:none;}
-    .card-header{background:white;border-bottom:2px solid #333;color:#333;}
-    .print-header{display:block!important;text-align:center;padding:20px 0;border-bottom:2px solid #333;margin-bottom:20px;}
-    .print-footer{display:block!important;margin-top:30px;padding-top:14px;border-top:1px solid #ccc;font-size:11px;color:#999;text-align:center;}
-    .result-text{font-size:14px;line-height:1.7;}
-  }
-  .print-header,.print-footer{display:none;}
-</style>
+    .lock-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .lock-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .lock-error {
+      color: var(--danger);
+      font-size: 13px;
+      text-align: center;
+      min-height: 20px;
+      margin-top: 10px;
+    }
+
+    .lock-secure {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1A6B5A 0%, #2D8B78 50%, #1A6B5A 100%);
+      padding: 16px 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(26, 107, 90, 0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .header .user-info {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hdr-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .hdr-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .monk-badge {
+      display: none;
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 10px;
+    }
+
+    .monk-badge.show {
+      display: inline-block;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media(max-width:768px) {
+      .container {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    /* Forms */
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    textarea,
+    select,
+    input[type="text"] {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      background: #FAFCFB;
+      line-height: 1.6;
+    }
+
+    textarea:focus,
+    select:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 107, 90, 0.1);
+      background: white;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    textarea.large {
+      min-height: 180px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    /* Patterns */
+    .pattern-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .pattern-option {
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .pattern-option:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .pattern-option.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(26, 107, 90, 0.1);
+    }
+
+    .pattern-name {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary);
+    }
+
+    .pattern-desc {
+      font-size: 11px;
+      color: var(--text-light);
+      line-height: 1.3;
+    }
+
+    /* Monk Toggle */
+    .monk-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: white;
+      user-select: none;
+      margin: 10px 0;
+    }
+
+    .monk-toggle:hover {
+      border-color: var(--accent);
+      background: #FFFDF5;
+    }
+
+    .monk-toggle.active {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      box-shadow: 0 0 0 3px rgba(200, 153, 58, 0.12);
+    }
+
+    .monk-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .monk-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #8B6914;
+    }
+
+    .monk-sub {
+      font-size: 11px;
+      color: var(--text-light);
+    }
+
+    .toggle-sw {
+      width: 44px;
+      height: 26px;
+      background: #D1DDD9;
+      border-radius: 13px;
+      position: relative;
+      transition: 0.25s;
+      flex-shrink: 0;
+    }
+
+    .monk-toggle.active .toggle-sw {
+      background: var(--accent);
+    }
+
+    .toggle-knob {
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: 0.25s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .monk-toggle.active .toggle-knob {
+      transform: translateX(18px);
+    }
+
+    /* Custom Pattern */
+    .custom-editor {
+      display: none;
+      margin-bottom: 10px;
+      padding: 12px;
+      background: #F7FAF9;
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+    }
+
+    .custom-editor.show {
+      display: block;
+    }
+
+    .custom-editor textarea {
+      font-size: 13px;
+      min-height: 120px;
+    }
+
+    .section-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .section-tag {
+      background: var(--primary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 16px;
+      font-size: 11px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .section-tag:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Notice */
+    .notice {
+      background: #FEF5E7;
+      border: 1px solid #F0C78A;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #8B5E1A;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #2D8B78);
+      color: white;
+      border: none;
+      padding: 13px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(26, 107, 90, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-light);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-row .btn-secondary {
+      flex: 1;
+      justify-content: center;
+    }
+
+    .btn-print-big {
+      background: var(--primary) !important;
+      color: white !important;
+      border-color: var(--primary) !important;
+      font-weight: 700;
+      flex: 1.5;
+    }
+
+    /* Review Workflow */
+    .step-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 18px;
+    }
+
+    .step-title {
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .step-desc {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 1px;
+    }
+
+    .draft-banner {
+      background: #FEF5E7;
+      border: 1.5px solid #F0C78A;
+      color: #8B5E1A;
+    }
+
+    .confirmed-banner {
+      background: #E8F8F0;
+      border: 1.5px solid #7DCEA0;
+      color: #1A6B3C;
+    }
+
+    .edit-area {
+      width: 100%;
+      min-height: 320px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text);
+      background: #FFFDF5;
+      resize: vertical;
+    }
+
+    .edit-area:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+    }
+
+    .confirm-section {
+      margin-top: 14px;
+      padding: 14px;
+      background: #F7FAF9;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .confirm-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    @media(max-width:768px) {
+      .confirm-row {
+        flex-direction: column;
+      }
+    }
+
+    .btn-confirm {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #27AE60, #2ECC71);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    }
+
+    .btn-confirm:hover {
+      transform: translateY(-1px);
+    }
+
+    .confirm-hint {
+      font-size: 11px;
+      color: var(--text-light);
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    .result-text {
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    /* Loading & Status */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .result-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      color: var(--text-light);
+      text-align: center;
+      padding: 30px;
+    }
+
+    .result-placeholder .big-icon {
+      font-size: 44px;
+      margin-bottom: 10px;
+      opacity: 0.4;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    .status-dot.ready {
+      background: var(--success);
+    }
+
+    /* Admin Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal h3 {
+      font-size: 17px;
+      margin-bottom: 6px;
+      color: var(--primary);
+    }
+
+    .modal p {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 14px;
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .modal-btns button {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+
+    .modal-btns .cancel {
+      background: #EEF2F0;
+      color: var(--text);
+    }
+
+    .modal-btns .save {
+      background: var(--primary);
+      color: white;
+    }
+
+    .user-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+
+    .user-table th {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 8px;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .user-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .user-table .del-btn {
+      color: var(--danger);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 12px;
+      font-family: inherit;
+      text-decoration: underline;
+    }
+
+    /* Print */
+    @media print {
+      body {
+        background: white;
+      }
+
+      .header,
+      .input-panel,
+      .modal-overlay,
+      .btn-row,
+      .no-print,
+      .lock-screen,
+      #reviewStep,
+      .step-banner {
+        display: none !important;
+      }
+
+      .container {
+        display: block;
+        max-width: 100%;
+        padding: 0;
+      }
+
+      .card {
+        box-shadow: none;
+        border: none;
+      }
+
+      .card-header {
+        background: white;
+        border-bottom: 2px solid #333;
+        color: #333;
+      }
+
+      .print-header {
+        display: block !important;
+        text-align: center;
+        padding: 20px 0;
+        border-bottom: 2px solid #333;
+        margin-bottom: 20px;
+      }
+
+      .print-footer {
+        display: block !important;
+        margin-top: 30px;
+        padding-top: 14px;
+        border-top: 1px solid #ccc;
+        font-size: 11px;
+        color: #999;
+        text-align: center;
+      }
+
+      .result-text {
+        font-size: 14px;
+        line-height: 1.7;
+      }
+    }
+
+    .print-header,
+    .print-footer {
+      display: none;
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ===== LOGIN SCREEN ===== -->
-<div class="lock-screen" id="lockScreen">
-  <div class="lock-card">
-    <div style="font-size:44px;">🔬</div>
-    <h2>Lab Interpreter</h2>
-    <p class="sub">แปลผล Lab เป็นคำอธิบายสำหรับผู้ป่วย</p>
-    <div class="lock-form">
-      <label>ชื่อผู้ใช้</label>
-      <input type="text" id="loginUser" placeholder="เช่น admin, nurse01" autocomplete="username">
-      <label>PIN</label>
-      <input type="password" id="loginPin" class="pin-input" placeholder="••••" maxlength="8" inputmode="numeric"
-             onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password">
-      <button class="lock-btn" onclick="doLogin()" id="loginBtn">🔓 เข้าใช้งาน</button>
-      <div class="lock-error" id="loginError"></div>
-      <div class="lock-secure">🔒 API Key ไม่ได้เก็บบน browser — ปลอดภัย</div>
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div class="lock-screen" id="lockScreen">
+    <div class="lock-card">
+      <div style="font-size:44px;">🔬</div>
+      <h2>Lab Interpreter</h2>
+      <p class="sub">แปลผล Lab เป็นคำอธิบายสำหรับผู้ป่วย</p>
+      <div class="lock-form">
+        <label>ชื่อผู้ใช้</label>
+        <input type="text" id="loginUser" placeholder="เช่น admin, nurse01" autocomplete="username">
+        <label>PIN</label>
+        <input type="password" id="loginPin" class="pin-input" placeholder="••••" maxlength="8" inputmode="numeric"
+          onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password">
+        <button class="lock-btn" onclick="doLogin()" id="loginBtn">🔓 เข้าใช้งาน</button>
+        <div class="lock-error" id="loginError"></div>
+        <div class="lock-secure">🔒 API Key ไม่ได้เก็บบน browser — ปลอดภัย</div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ===== HEADER ===== -->
-<div class="header">
-  <div class="header-left">
-    <div class="header-icon">🔬</div>
+  <!-- ===== HEADER ===== -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">🔬</div>
+      <div>
+        <h1>Lab Interpreter</h1>
+        <div style="font-size:10px;opacity:0.7;margin-top:1px;">พัฒนาโดย อายุรกรรม โรงพยาบาลสงฆ์</div>
+        <div class="user-info" id="userInfo"></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="monk-badge" id="monkBadge">🙏 ภาษาสงฆ์</span>
+      <button class="hdr-btn" onclick="showAdminModal()" id="adminBtn" style="display:none">👥 จัดการผู้ใช้</button>
+      <button class="hdr-btn" onclick="doLogout()">🔒 ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN MODAL ===== -->
+  <div class="modal-overlay" id="adminModal">
+    <div class="modal">
+      <h3>👥 จัดการผู้ใช้งาน</h3>
+      <p>เพิ่ม/ลบผู้ใช้ รีเซ็ต PIN (เฉพาะ Admin)</p>
+      <div id="userList"></div>
+      <hr style="margin:14px 0;border:none;border-top:1px solid var(--border);">
+      <h3 style="font-size:14px;">➕ เพิ่มผู้ใช้ใหม่</h3>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <input type="text" id="newUsername" placeholder="ชื่อผู้ใช้" style="flex:1;min-width:100px;">
+        <input type="text" id="newDisplayName" placeholder="ชื่อแสดง เช่น พญ.สมศรี" style="flex:1;min-width:120px;">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input type="text" id="newPin" placeholder="PIN (4+ หลัก)" style="flex:1;">
+        <select id="newRole"
+          style="width:120px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;">
+          <option value="doctor">แพทย์</option>
+          <option value="nurse">พยาบาล</option>
+          <option value="pharmacist">เภสัชกร</option>
+          <option value="staff">เจ้าหน้าที่</option>
+        </select>
+      </div>
+      <div class="modal-btns" style="margin-top:12px;">
+        <button class="cancel" onclick="closeAdminModal()">ปิด</button>
+        <button class="save" onclick="addUser()">เพิ่มผู้ใช้</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="container">
+    <div class="input-panel">
+      <!-- Pattern Card -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">📋 รูปแบบการแปลผล</div>
+        <div class="card-body">
+          <div class="pattern-grid">
+            <div class="pattern-option active" data-pattern="standard" onclick="selectPattern(this)">
+              <div class="pattern-name">📄 มาตรฐาน</div>
+              <div class="pattern-desc">สรุป → อธิบาย Lab → คำแนะนำ → สัญญาณอันตราย</div>
+            </div>
+            <div class="pattern-option" data-pattern="simple" onclick="selectPattern(this)">
+              <div class="pattern-name">🟢 เรียบง่าย</div>
+              <div class="pattern-desc">สั้นกระชับ ภาษาง่าย ≤200 คำ</div>
+            </div>
+            <div class="pattern-option" data-pattern="detailed" onclick="selectPattern(this)">
+              <div class="pattern-name">📊 ละเอียด</div>
+              <div class="pattern-desc">เทียบค่าปกติ + อาหาร + ยา + ออกกำลังกาย</div>
+            </div>
+            <div class="pattern-option" data-pattern="custom" onclick="selectPattern(this)">
+              <div class="pattern-name">✏️ กำหนดเอง</div>
+              <div class="pattern-desc">ออกแบบ pattern เอง</div>
+            </div>
+          </div>
+          <div class="custom-editor" id="customEditor">
+            <label>กำหนดโครงสร้าง</label>
+            <textarea id="customText" placeholder="1. สรุปผลภาพรวม&#10;2. อธิบายค่า Lab&#10;3. คำแนะนำอาหาร"></textarea>
+            <div class="section-tags" style="margin-top:6px;">
+              <button class="section-tag" onclick="addTag('สรุปผลภาพรวม')">สรุปภาพรวม</button>
+              <button class="section-tag" onclick="addTag('อธิบายค่า Lab')">ค่า Lab</button>
+              <button class="section-tag" onclick="addTag('คำแนะนำอาหาร')">อาหาร</button>
+              <button class="section-tag" onclick="addTag('คำแนะนำเรื่องยา')">ยา</button>
+              <button class="section-tag" onclick="addTag('การออกกำลังกาย')">ออกกำลังกาย</button>
+              <button class="section-tag" onclick="addTag('สัญญาณอันตราย')">สัญญาณอันตราย</button>
+            </div>
+          </div>
+          <!-- Monk Toggle -->
+          <div class="monk-toggle" id="monkToggle" onclick="toggleMonk()">
+            <div class="monk-toggle-left">
+              <span style="font-size:20px;">🙏</span>
+              <div>
+                <div class="monk-title">สำหรับพระสงฆ์</div>
+                <div class="monk-sub">ฉัน ภัตตาหาร อาพาธ จำวัด เดินจงกรม</div>
+              </div>
+            </div>
+            <div class="toggle-sw">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient Data Card -->
+      <div class="card">
+        <div class="card-header">🏥 ข้อมูลผู้ป่วย (ไม่ระบุชื่อ)</div>
+        <div class="card-body">
+          <div class="notice">⚠️ ห้ามใส่ชื่อ-นามสกุล หรือข้อมูลระบุตัวตนผู้ป่วย</div>
+          <div class="form-group">
+            <label>ประวัติผู้ป่วย</label>
+            <textarea id="patientHistory"
+              placeholder="เช่น ชาย อายุ 58 ปี เบาหวาน ความดันสูง ทานยา Metformin"></textarea>
+          </div>
+          <div class="form-group">
+            <label>ค่า Lab (Copy-Paste ได้เลย)</label>
+            <textarea id="labValues" class="large"
+              placeholder="เช่น FBS 185, HbA1c 8.2%, Cr 1.6, eGFR 48&#10;TC 245, TG 310, HDL 35, LDL 160"></textarea>
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุเพิ่มเติม</label>
+            <input type="text" id="extraNotes" placeholder="เช่น ไตวาย stage 3, เพิ่งปรับยา">
+          </div>
+          <button class="btn-primary" id="generateBtn" onclick="generate()">🔬 แปลผล Lab</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Panel -->
     <div>
-      <h1>Lab Interpreter</h1>
-      <div class="user-info" id="userInfo"></div>
-    </div>
-  </div>
-  <div class="header-right">
-    <span class="monk-badge" id="monkBadge">🙏 ภาษาสงฆ์</span>
-    <button class="hdr-btn" onclick="showAdminModal()" id="adminBtn" style="display:none">👥 จัดการผู้ใช้</button>
-    <button class="hdr-btn" onclick="doLogout()">🔒 ออกจากระบบ</button>
-  </div>
-</div>
+      <div class="card">
+        <div class="card-header">
+          📝 ผลการแปล
+          <span style="margin-left:auto;font-size:12px;font-weight:400;" id="statusBar">
+            <span class="status-dot ready"></span>พร้อมใช้
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="print-header">
+            <h2 id="printTitle">🔬 คำอธิบายผลตรวจเลือดของท่าน</h2>
+            <p id="printSubtitle">จัดทำโดยระบบ Lab Interpreter — กรุณาปรึกษาแพทย์เพิ่มเติม</p>
+          </div>
+          <div class="result-placeholder" id="placeholder">
+            <div class="big-icon">🩺</div>
+            <div style="font-size:14px;font-weight:600;">พร้อมแปลผล</div>
+            <div style="font-size:12px;">เลือก Pattern → ใส่ค่า Lab → กดแปลผล</div>
+          </div>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div style="color:var(--text-light);font-size:13px;">กำลังวิเคราะห์...<br><span
+                style="font-size:11px;opacity:0.7;">อาจใช้เวลา 10-30 วินาที</span></div>
+          </div>
 
-<!-- ===== ADMIN MODAL ===== -->
-<div class="modal-overlay" id="adminModal">
-  <div class="modal">
-    <h3>👥 จัดการผู้ใช้งาน</h3>
-    <p>เพิ่ม/ลบผู้ใช้ รีเซ็ต PIN (เฉพาะ Admin)</p>
-    <div id="userList"></div>
-    <hr style="margin:14px 0;border:none;border-top:1px solid var(--border);">
-    <h3 style="font-size:14px;">➕ เพิ่มผู้ใช้ใหม่</h3>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-      <input type="text" id="newUsername" placeholder="ชื่อผู้ใช้" style="flex:1;min-width:100px;">
-      <input type="text" id="newDisplayName" placeholder="ชื่อแสดง เช่น พญ.สมศรี" style="flex:1;min-width:120px;">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <input type="text" id="newPin" placeholder="PIN (4+ หลัก)" style="flex:1;">
-      <select id="newRole" style="width:120px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;">
-        <option value="doctor">แพทย์</option>
-        <option value="nurse">พยาบาล</option>
-        <option value="pharmacist">เภสัชกร</option>
-        <option value="staff">เจ้าหน้าที่</option>
-      </select>
-    </div>
-    <div class="modal-btns" style="margin-top:12px;">
-      <button class="cancel" onclick="closeAdminModal()">ปิด</button>
-      <button class="save" onclick="addUser()">เพิ่มผู้ใช้</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MAIN CONTENT ===== -->
-<div class="container">
-  <div class="input-panel">
-    <!-- Pattern Card -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-header">📋 รูปแบบการแปลผล</div>
-      <div class="card-body">
-        <div class="pattern-grid">
-          <div class="pattern-option active" data-pattern="standard" onclick="selectPattern(this)">
-            <div class="pattern-name">📄 มาตรฐาน</div>
-            <div class="pattern-desc">สรุป → อธิบาย Lab → คำแนะนำ → สัญญาณอันตราย</div>
-          </div>
-          <div class="pattern-option" data-pattern="simple" onclick="selectPattern(this)">
-            <div class="pattern-name">🟢 เรียบง่าย</div>
-            <div class="pattern-desc">สั้นกระชับ ภาษาง่าย ≤200 คำ</div>
-          </div>
-          <div class="pattern-option" data-pattern="detailed" onclick="selectPattern(this)">
-            <div class="pattern-name">📊 ละเอียด</div>
-            <div class="pattern-desc">เทียบค่าปกติ + อาหาร + ยา + ออกกำลังกาย</div>
-          </div>
-          <div class="pattern-option" data-pattern="custom" onclick="selectPattern(this)">
-            <div class="pattern-name">✏️ กำหนดเอง</div>
-            <div class="pattern-desc">ออกแบบ pattern เอง</div>
-          </div>
-        </div>
-        <div class="custom-editor" id="customEditor">
-          <label>กำหนดโครงสร้าง</label>
-          <textarea id="customText" placeholder="1. สรุปผลภาพรวม&#10;2. อธิบายค่า Lab&#10;3. คำแนะนำอาหาร"></textarea>
-          <div class="section-tags" style="margin-top:6px;">
-            <button class="section-tag" onclick="addTag('สรุปผลภาพรวม')">สรุปภาพรวม</button>
-            <button class="section-tag" onclick="addTag('อธิบายค่า Lab')">ค่า Lab</button>
-            <button class="section-tag" onclick="addTag('คำแนะนำอาหาร')">อาหาร</button>
-            <button class="section-tag" onclick="addTag('คำแนะนำเรื่องยา')">ยา</button>
-            <button class="section-tag" onclick="addTag('การออกกำลังกาย')">ออกกำลังกาย</button>
-            <button class="section-tag" onclick="addTag('สัญญาณอันตราย')">สัญญาณอันตราย</button>
-          </div>
-        </div>
-        <!-- Monk Toggle -->
-        <div class="monk-toggle" id="monkToggle" onclick="toggleMonk()">
-          <div class="monk-toggle-left">
-            <span style="font-size:20px;">🙏</span>
-            <div>
-              <div class="monk-title">สำหรับพระสงฆ์</div>
-              <div class="monk-sub">ฉัน ภัตตาหาร อาพาธ จำวัด เดินจงกรม</div>
-            </div>
-          </div>
-          <div class="toggle-sw"><div class="toggle-knob"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Patient Data Card -->
-    <div class="card">
-      <div class="card-header">🏥 ข้อมูลผู้ป่วย (ไม่ระบุชื่อ)</div>
-      <div class="card-body">
-        <div class="notice">⚠️ ห้ามใส่ชื่อ-นามสกุล หรือข้อมูลระบุตัวตนผู้ป่วย</div>
-        <div class="form-group">
-          <label>ประวัติผู้ป่วย</label>
-          <textarea id="patientHistory" placeholder="เช่น ชาย อายุ 58 ปี เบาหวาน ความดันสูง ทานยา Metformin"></textarea>
-        </div>
-        <div class="form-group">
-          <label>ค่า Lab (Copy-Paste ได้เลย)</label>
-          <textarea id="labValues" class="large" placeholder="เช่น FBS 185, HbA1c 8.2%, Cr 1.6, eGFR 48&#10;TC 245, TG 310, HDL 35, LDL 160"></textarea>
-        </div>
-        <div class="form-group">
-          <label>หมายเหตุเพิ่มเติม</label>
-          <input type="text" id="extraNotes" placeholder="เช่น ไตวาย stage 3, เพิ่งปรับยา">
-        </div>
-        <button class="btn-primary" id="generateBtn" onclick="generate()">🔬 แปลผล Lab</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Result Panel -->
-  <div>
-    <div class="card">
-      <div class="card-header">
-        📝 ผลการแปล
-        <span style="margin-left:auto;font-size:12px;font-weight:400;" id="statusBar">
-          <span class="status-dot ready"></span>พร้อมใช้
-        </span>
-      </div>
-      <div class="card-body">
-        <div class="print-header">
-          <h2 id="printTitle">🔬 คำอธิบายผลตรวจเลือดของท่าน</h2>
-          <p id="printSubtitle">จัดทำโดยระบบ Lab Interpreter — กรุณาปรึกษาแพทย์เพิ่มเติม</p>
-        </div>
-        <div class="result-placeholder" id="placeholder">
-          <div class="big-icon">🩺</div>
-          <div style="font-size:14px;font-weight:600;">พร้อมแปลผล</div>
-          <div style="font-size:12px;">เลือก Pattern → ใส่ค่า Lab → กดแปลผล</div>
-        </div>
-        <div class="loading" id="loading">
-          <div class="spinner"></div>
-          <div style="color:var(--text-light);font-size:13px;">กำลังวิเคราะห์...<br><span style="font-size:11px;opacity:0.7;">อาจใช้เวลา 10-30 วินาที</span></div>
-        </div>
-
-        <!-- Step 1: Review & Edit -->
-        <div id="reviewStep" style="display:none;">
-          <div class="step-banner draft-banner">
-            <span>✏️</span>
-            <div><div class="step-title">ฉบับร่าง — รอตรวจสอบ</div><div class="step-desc">ตรวจสอบและแก้ไขก่อนยืนยัน</div></div>
-          </div>
-          <textarea class="edit-area" id="editArea" spellcheck="false"></textarea>
-          <div class="confirm-section">
-            <div class="confirm-row">
-              <div class="form-group" style="flex:1;margin-bottom:0;">
-                <label>ผู้ตรวจสอบ</label>
-                <input type="text" id="reviewerName" placeholder="เช่น พญ.สมศรี">
-              </div>
-              <div class="form-group" style="width:140px;margin-bottom:0;">
-                <label>ตำแหน่ง</label>
-                <select id="reviewerRole"><option>แพทย์</option><option>พยาบาล</option><option>เภสัชกร</option><option>อื่นๆ</option></select>
+          <!-- Step 1: Review & Edit -->
+          <div id="reviewStep" style="display:none;">
+            <div class="step-banner draft-banner">
+              <span>✏️</span>
+              <div>
+                <div class="step-title">ฉบับร่าง — รอตรวจสอบ</div>
+                <div class="step-desc">ตรวจสอบและแก้ไขก่อนยืนยัน</div>
               </div>
             </div>
-            <button class="btn-confirm" onclick="confirmResult()">✅ ยืนยันผลการแปล</button>
-            <div class="confirm-hint">* ระบุชื่อผู้ตรวจสอบก่อนยืนยัน</div>
+            <textarea class="edit-area" id="editArea" spellcheck="false"></textarea>
+            <div class="confirm-section">
+              <div class="confirm-row">
+                <div class="form-group" style="flex:1;margin-bottom:0;">
+                  <label>ผู้ตรวจสอบ</label>
+                  <input type="text" id="reviewerName" placeholder="เช่น พญ.สมศรี">
+                </div>
+                <div class="form-group" style="width:140px;margin-bottom:0;">
+                  <label>ตำแหน่ง</label>
+                  <select id="reviewerRole">
+                    <option>แพทย์</option>
+                    <option>พยาบาล</option>
+                    <option>เภสัชกร</option>
+                    <option>อื่นๆ</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn-confirm" onclick="confirmResult()">✅ ยืนยันผลการแปล</button>
+              <div class="confirm-hint">* ระบุชื่อผู้ตรวจสอบก่อนยืนยัน</div>
+            </div>
+          </div>
+
+          <!-- Step 2: Confirmed -->
+          <div id="confirmedStep" style="display:none;">
+            <div class="step-banner confirmed-banner">
+              <span>✅</span>
+              <div>
+                <div class="step-title">ยืนยันแล้ว — พร้อมพิมพ์</div>
+                <div class="step-desc" id="confirmedInfo"></div>
+              </div>
+            </div>
+            <div class="result-text" id="resultText"></div>
+          </div>
+
+          <div class="print-footer">
+            ⚕️ ตรวจสอบโดย <span id="printReviewer"></span><br>
+            สร้างโดย AI ไม่ใช่การวินิจฉัยโรค กรุณาปฏิบัติตามคำแนะนำของแพทย์<br>
+            พิมพ์เมื่อ: <span id="printDate"></span>
           </div>
         </div>
 
-        <!-- Step 2: Confirmed -->
-        <div id="confirmedStep" style="display:none;">
-          <div class="step-banner confirmed-banner">
-            <span>✅</span>
-            <div><div class="step-title">ยืนยันแล้ว — พร้อมพิมพ์</div><div class="step-desc" id="confirmedInfo"></div></div>
-          </div>
-          <div class="result-text" id="resultText"></div>
+        <div class="btn-row no-print" style="padding:0 18px 18px;display:none;" id="reviewBtns">
+          <button class="btn-secondary" onclick="generate()">🔄 แปลผลใหม่</button>
+          <button class="btn-secondary" onclick="clearAll()">🗑️ ล้าง</button>
         </div>
-
-        <div class="print-footer">
-          ⚕️ ตรวจสอบโดย <span id="printReviewer"></span><br>
-          สร้างโดย AI ไม่ใช่การวินิจฉัยโรค กรุณาปฏิบัติตามคำแนะนำของแพทย์<br>
-          พิมพ์เมื่อ: <span id="printDate"></span>
+        <div class="btn-row no-print" style="padding:0 18px 18px;display:none;" id="confirmedBtns">
+          <button class="btn-secondary btn-print-big" onclick="printResult()">🖨️ Print ใบให้ผู้ป่วย</button>
+          <button class="btn-secondary" onclick="copyResult()">📋 Copy</button>
+          <button class="btn-secondary" onclick="backToEdit()">✏️ แก้ไข</button>
+          <button class="btn-secondary" onclick="clearAll()">🗑️ ล้าง</button>
         </div>
-      </div>
-
-      <div class="btn-row no-print" style="padding:0 18px 18px;display:none;" id="reviewBtns">
-        <button class="btn-secondary" onclick="generate()">🔄 แปลผลใหม่</button>
-        <button class="btn-secondary" onclick="clearAll()">🗑️ ล้าง</button>
-      </div>
-      <div class="btn-row no-print" style="padding:0 18px 18px;display:none;" id="confirmedBtns">
-        <button class="btn-secondary btn-print-big" onclick="printResult()">🖨️ Print ใบให้ผู้ป่วย</button>
-        <button class="btn-secondary" onclick="copyResult()">📋 Copy</button>
-        <button class="btn-secondary" onclick="backToEdit()">✏️ แก้ไข</button>
-        <button class="btn-secondary" onclick="clearAll()">🗑️ ล้าง</button>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-// ===== State =====
-let token = sessionStorage.getItem('lab_token') || '';
-let currentUser = null;
-let currentPattern = 'standard';
-let monkMode = false;
+  <script>
+    // ===== State =====
+    let token = sessionStorage.getItem('lab_token') || '';
+    let currentUser = null;
+    let currentPattern = 'standard';
+    let monkMode = false;
 
-const API = ''; // same origin, e.g. /api/login
+    const API = ''; // same origin, e.g. /api/login
 
-// ===== Auth =====
-async function doLogin() {
-  const user = document.getElementById('loginUser').value.trim();
-  const pin = document.getElementById('loginPin').value.trim();
-  const errEl = document.getElementById('loginError');
-  const btn = document.getElementById('loginBtn');
-  if (!user || !pin) { errEl.textContent = 'กรุณาใส่ชื่อผู้ใช้และ PIN'; return; }
+    // ===== Auth =====
+    async function doLogin() {
+      const user = document.getElementById('loginUser').value.trim();
+      const pin = document.getElementById('loginPin').value.trim();
+      const errEl = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+      if (!user || !pin) { errEl.textContent = 'กรุณาใส่ชื่อผู้ใช้และ PIN'; return; }
 
-  btn.disabled = true; btn.textContent = '⏳ กำลังเข้าสู่ระบบ...';
-  try {
-    const res = await fetch(API + '/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, pin })
-    });
-    const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'เข้าสู่ระบบไม่สำเร็จ'; return; }
+      btn.disabled = true; btn.textContent = '⏳ กำลังเข้าสู่ระบบ...';
+      try {
+        const res = await fetch(API + '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, pin })
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'เข้าสู่ระบบไม่สำเร็จ'; return; }
 
-    token = data.token;
-    currentUser = data.user;
-    sessionStorage.setItem('lab_token', token);
-    unlockUI();
-  } catch (e) {
-    errEl.textContent = 'เชื่อมต่อ server ไม่ได้';
-  } finally {
-    btn.disabled = false; btn.textContent = '🔓 เข้าใช้งาน';
-  }
-}
-
-function unlockUI() {
-  document.getElementById('lockScreen').classList.add('hidden');
-  document.getElementById('userInfo').textContent = `${currentUser.displayName} (${currentUser.role})`;
-  // Auto-fill reviewer name
-  document.getElementById('reviewerName').value = currentUser.displayName;
-  const roleMap = { doctor:'แพทย์', nurse:'พยาบาล', pharmacist:'เภสัชกร', admin:'แพทย์', staff:'อื่นๆ' };
-  const sel = document.getElementById('reviewerRole');
-  for (let i = 0; i < sel.options.length; i++) {
-    if (sel.options[i].value === (roleMap[currentUser.role] || 'อื่นๆ')) { sel.selectedIndex = i; break; }
-  }
-  if (currentUser.isAdmin) document.getElementById('adminBtn').style.display = 'inline-flex';
-}
-
-async function doLogout() {
-  try { await fetch(API + '/api/logout', { method:'POST', headers:{ Authorization:'Bearer '+token }}); } catch {}
-  token = '';
-  currentUser = null;
-  sessionStorage.removeItem('lab_token');
-  document.getElementById('lockScreen').classList.remove('hidden');
-  document.getElementById('loginPin').value = '';
-  document.getElementById('loginError').textContent = '';
-  document.getElementById('adminBtn').style.display = 'none';
-}
-
-// Check existing session on load
-async function checkSession() {
-  if (!token) return;
-  try {
-    const res = await fetch(API + '/api/me', { headers: { Authorization: 'Bearer ' + token } });
-    if (res.ok) {
-      const data = await res.json();
-      currentUser = data.user;
-      unlockUI();
-    } else {
-      sessionStorage.removeItem('lab_token');
-      token = '';
+        token = data.token;
+        currentUser = data.user;
+        sessionStorage.setItem('lab_token', token);
+        unlockUI();
+      } catch (e) {
+        errEl.textContent = 'เชื่อมต่อ server ไม่ได้';
+      } finally {
+        btn.disabled = false; btn.textContent = '🔓 เข้าใช้งาน';
+      }
     }
-  } catch { /* server down, show login */ }
-}
 
-// ===== Admin =====
-async function showAdminModal() {
-  document.getElementById('adminModal').classList.add('show');
-  const res = await fetch(API + '/api/admin/users', {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json', Authorization:'Bearer '+token },
-    body: JSON.stringify({ action: 'list' })
-  });
-  const data = await res.json();
-  const roles = { admin:'ผู้ดูแล', doctor:'แพทย์', nurse:'พยาบาล', pharmacist:'เภสัชกร', staff:'เจ้าหน้าที่' };
-  let html = '<table class="user-table"><tr><th>ชื่อผู้ใช้</th><th>ชื่อแสดง</th><th>ตำแหน่ง</th><th></th></tr>';
-  for (const u of data.users) {
-    html += `<tr><td>${u.username}</td><td>${u.display_name}</td><td>${roles[u.role]||u.role}</td>
-    <td>${u.is_admin?'👑':'<button class="del-btn" onclick="deleteUser('+u.id+')">ลบ</button>'}</td></tr>`;
-  }
-  html += '</table>';
-  document.getElementById('userList').innerHTML = html;
-}
+    function unlockUI() {
+      document.getElementById('lockScreen').classList.add('hidden');
+      document.getElementById('userInfo').textContent = `${currentUser.displayName} (${currentUser.role})`;
+      // Auto-fill reviewer name
+      document.getElementById('reviewerName').value = currentUser.displayName;
+      const roleMap = { doctor: 'แพทย์', nurse: 'พยาบาล', pharmacist: 'เภสัชกร', admin: 'แพทย์', staff: 'อื่นๆ' };
+      const sel = document.getElementById('reviewerRole');
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === (roleMap[currentUser.role] || 'อื่นๆ')) { sel.selectedIndex = i; break; }
+      }
+      if (currentUser.isAdmin) document.getElementById('adminBtn').style.display = 'inline-flex';
+    }
 
-function closeAdminModal() { document.getElementById('adminModal').classList.remove('show'); }
+    async function doLogout() {
+      try { await fetch(API + '/api/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + token } }); } catch { }
+      token = '';
+      currentUser = null;
+      sessionStorage.removeItem('lab_token');
+      document.getElementById('lockScreen').classList.remove('hidden');
+      document.getElementById('loginPin').value = '';
+      document.getElementById('loginError').textContent = '';
+      document.getElementById('adminBtn').style.display = 'none';
+    }
 
-async function addUser() {
-  const username = document.getElementById('newUsername').value.trim();
-  const displayName = document.getElementById('newDisplayName').value.trim();
-  const pin = document.getElementById('newPin').value.trim();
-  const role = document.getElementById('newRole').value;
-  if (!username||!displayName||!pin) { alert('กรอกข้อมูลให้ครบ'); return; }
-  const res = await fetch(API+'/api/admin/users', {
-    method:'POST', headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
-    body: JSON.stringify({action:'add',username,displayName,pin,role})
-  });
-  const data = await res.json();
-  if (data.error) alert(data.error); else { alert('✅ เพิ่มผู้ใช้แล้ว'); showAdminModal(); }
-  document.getElementById('newUsername').value='';
-  document.getElementById('newDisplayName').value='';
-  document.getElementById('newPin').value='';
-}
+    // Check existing session on load
+    async function checkSession() {
+      if (!token) return;
+      try {
+        const res = await fetch(API + '/api/me', { headers: { Authorization: 'Bearer ' + token } });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          unlockUI();
+        } else {
+          sessionStorage.removeItem('lab_token');
+          token = '';
+        }
+      } catch { /* server down, show login */ }
+    }
 
-async function deleteUser(id) {
-  if (!confirm('ลบผู้ใช้นี้?')) return;
-  await fetch(API+'/api/admin/users',{
-    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
-    body:JSON.stringify({action:'delete',userId:id})
-  });
-  showAdminModal();
-}
+    // ===== Admin =====
+    async function showAdminModal() {
+      document.getElementById('adminModal').classList.add('show');
+      const res = await fetch(API + '/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'list' })
+      });
+      const data = await res.json();
+      const roles = { admin: 'ผู้ดูแล', doctor: 'แพทย์', nurse: 'พยาบาล', pharmacist: 'เภสัชกร', staff: 'เจ้าหน้าที่' };
+      let html = '<table class="user-table"><tr><th>ชื่อผู้ใช้</th><th>ชื่อแสดง</th><th>ตำแหน่ง</th><th></th></tr>';
+      for (const u of data.users) {
+        html += `<tr><td>${u.username}</td><td>${u.display_name}</td><td>${roles[u.role] || u.role}</td>
+    <td>${u.is_admin ? '👑' : '<button class="del-btn" onclick="deleteUser(' + u.id + ')">ลบ</button>'}</td></tr>`;
+      }
+      html += '</table>';
+      document.getElementById('userList').innerHTML = html;
+    }
 
-// ===== Patterns =====
-const patterns = {
-  standard: `คุณเป็นผู้ช่วยแพทย์อธิบายผลตรวจเลือดให้ผู้ป่วยเข้าใจ ตอบภาษาไทย:
+    function closeAdminModal() { document.getElementById('adminModal').classList.remove('show'); }
+
+    async function addUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      const displayName = document.getElementById('newDisplayName').value.trim();
+      const pin = document.getElementById('newPin').value.trim();
+      const role = document.getElementById('newRole').value;
+      if (!username || !displayName || !pin) { alert('กรอกข้อมูลให้ครบ'); return; }
+      const res = await fetch(API + '/api/admin/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'add', username, displayName, pin, role })
+      });
+      const data = await res.json();
+      if (data.error) alert(data.error); else { alert('✅ เพิ่มผู้ใช้แล้ว'); showAdminModal(); }
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newDisplayName').value = '';
+      document.getElementById('newPin').value = '';
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('ลบผู้ใช้นี้?')) return;
+      await fetch(API + '/api/admin/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'delete', userId: id })
+      });
+      showAdminModal();
+    }
+
+    // ===== Patterns =====
+    const patterns = {
+      standard: `คุณเป็นผู้ช่วยแพทย์อธิบายผลตรวจเลือดให้ผู้ป่วยเข้าใจ ตอบภาษาไทย:
 📋 สรุปภาพรวม — ผลตรวจโดยรวม
 🔬 อธิบายค่าที่สำคัญ — ค่าผิดปกติ ค่าปกติเท่าไหร่ หมายความอย่างไร
 ✅ คำแนะนำปฏิบัติตัว — อาหาร ออกกำลังกาย ยา
 ⚠️ สัญญาณต้องมาพบแพทย์ทันที
 ข้อกำหนด: ห้ามวินิจฉัยโรค ห้ามสั่งยา ใช้ภาษาง่าย ลงท้าย "กรุณาปฏิบัติตามคำแนะนำของแพทย์ผู้ดูแลเสมอ"`,
 
-  simple: `คุณเป็นผู้ช่วยแพทย์ อธิบายผลตรวจเลือดสั้นกระชับ ภาษาง่ายที่สุด:
+      simple: `คุณเป็นผู้ช่วยแพทย์ อธิบายผลตรวจเลือดสั้นกระชับ ภาษาง่ายที่สุด:
 ผลตรวจเลือดของท่าน: บอกค่าไหนปกติ ค่าไหนผิดปกติ
 สิ่งที่ควรทำ: 3-5 ข้อสั้นๆ
 ห้ามวินิจฉัยโรค ห้ามสั่งยา ไม่เกิน 200 คำ ลงท้าย "ปฏิบัติตามหมอสั่งนะครับ/ค่ะ"`,
 
-  detailed: `คุณเป็นผู้ช่วยแพทย์อธิบายผลตรวจเลือดอย่างละเอียด ตอบภาษาไทย:
+      detailed: `คุณเป็นผู้ช่วยแพทย์อธิบายผลตรวจเลือดอย่างละเอียด ตอบภาษาไทย:
 📋 สรุปผลตรวจภาพรวม
 🔬 รายละเอียดค่า Lab แต่ละตัว — ค่าที่ได้ → ค่าปกติ → สถานะ (✅/⬆️/⬇️) + ความหมาย
 🍽️ คำแนะนำอาหาร — ควรทาน/หลีกเลี่ยง (ตัวอย่างในไทย)
@@ -521,136 +1259,137 @@ const patterns = {
 ⚠️ สัญญาณอันตราย
 📅 การนัดตรวจ
 ห้ามวินิจฉัยโรค ห้ามสั่งยา ลงท้าย "กรุณาปฏิบัติตามคำแนะนำของแพทย์ผู้ดูแลเสมอ"`
-};
+    };
 
-const monkAddon = `
+    const monkAddon = `
 
 ⚠️ กฎสำคัญ — ใช้คำราชาศัพท์สงฆ์ทั้งหมด:
 เรียกผู้ป่วย→"พระคุณเจ้า" กิน/ทาน→"ฉัน" อาหาร→"ภัตตาหาร" น้ำดื่ม→"น้ำปานะ" ป่วย→"อาพาธ" นอน→"จำวัด" อาบน้ำ→"สรงน้ำ" ห้องพัก→"กุฏิ" ออกกำลังกาย→"เดินจงกรม" ร่างกาย→"สังขาร" ยา→"ฉันยา/โอสถ" หลังเที่ยง→"หลังเพล"
 วิถีสงฆ์: ฉันได้2มื้อ(เช้า+เพลก่อนเที่ยง) หลังเพลฉันได้เฉพาะน้ำปานะ ฉันยาหลังเพล→ฉันกับน้ำปานะ อาหารบิณฑบาต→แนะนำ"ญาติโยมควรจัดถวาย" ออกกำลัง→"เดินจงกรม"
 เปิดด้วย "🙏 ขอนมัสการ พระคุณเจ้า" ลงท้าย "กราบนมัสการด้วยความเคารพ ขอพระคุณเจ้าปฏิบัติตามคำแนะนำของแพทย์"`;
 
-// ===== UI =====
-function selectPattern(el) {
-  document.querySelectorAll('.pattern-option').forEach(e=>e.classList.remove('active'));
-  el.classList.add('active');
-  currentPattern = el.dataset.pattern;
-  document.getElementById('customEditor').classList.toggle('show', currentPattern==='custom');
-}
+    // ===== UI =====
+    function selectPattern(el) {
+      document.querySelectorAll('.pattern-option').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      currentPattern = el.dataset.pattern;
+      document.getElementById('customEditor').classList.toggle('show', currentPattern === 'custom');
+    }
 
-function toggleMonk() {
-  monkMode = !monkMode;
-  document.getElementById('monkToggle').classList.toggle('active', monkMode);
-  document.getElementById('monkBadge').classList.toggle('show', monkMode);
-}
+    function toggleMonk() {
+      monkMode = !monkMode;
+      document.getElementById('monkToggle').classList.toggle('active', monkMode);
+      document.getElementById('monkBadge').classList.toggle('show', monkMode);
+    }
 
-function addTag(t) {
-  const ta = document.getElementById('customText');
-  const n = ta.value.trim().split('\n').filter(l=>l.trim()).length+1;
-  ta.value = (ta.value.trim()?ta.value.trim()+'\n':'')+n+'. '+t;
-}
+    function addTag(t) {
+      const ta = document.getElementById('customText');
+      const n = ta.value.trim().split('\n').filter(l => l.trim()).length + 1;
+      ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + n + '. ' + t;
+    }
 
-// ===== Generate (via Backend Proxy) =====
-async function generate() {
-  if (!token) { alert('กรุณา login ก่อน'); return; }
-  const labs = document.getElementById('labValues').value.trim();
-  if (!labs) { alert('กรุณาใส่ค่า Lab'); return; }
+    // ===== Generate (via Backend Proxy) =====
+    async function generate() {
+      if (!token) { alert('กรุณา login ก่อน'); return; }
+      const labs = document.getElementById('labValues').value.trim();
+      if (!labs) { alert('กรุณาใส่ค่า Lab'); return; }
 
-  let sys;
-  if (currentPattern==='custom') {
-    const ct = document.getElementById('customText').value.trim();
-    if (!ct) { alert('กรุณากรอก pattern'); return; }
-    sys = `คุณเป็นผู้ช่วยแพทย์อธิบายผลตรวจเลือด ตอบภาษาไทย:\n${ct}\nห้ามวินิจฉัยโรค ห้ามสั่งยา`;
-  } else {
-    sys = patterns[currentPattern];
-  }
-  if (monkMode) sys += monkAddon;
+      let sys;
+      if (currentPattern === 'custom') {
+        const ct = document.getElementById('customText').value.trim();
+        if (!ct) { alert('กรุณากรอก pattern'); return; }
+        sys = `คุณเป็นผู้ช่วยแพทย์อธิบายผลตรวจเลือด ตอบภาษาไทย:\n${ct}\nห้ามวินิจฉัยโรค ห้ามสั่งยา`;
+      } else {
+        sys = patterns[currentPattern];
+      }
+      if (monkMode) sys += monkAddon;
 
-  const history = document.getElementById('patientHistory').value.trim();
-  const notes = document.getElementById('extraNotes').value.trim();
-  let userMsg = '';
-  if (history) userMsg += `ประวัติ: ${history}\n\n`;
-  userMsg += `ค่า Lab:\n${labs}`;
-  if (notes) userMsg += `\n\nหมายเหตุ: ${notes}`;
+      const history = document.getElementById('patientHistory').value.trim();
+      const notes = document.getElementById('extraNotes').value.trim();
+      let userMsg = '';
+      if (history) userMsg += `ประวัติ: ${history}\n\n`;
+      userMsg += `ค่า Lab:\n${labs}`;
+      if (notes) userMsg += `\n\nหมายเหตุ: ${notes}`;
 
-  // Show loading
-  document.getElementById('placeholder').style.display='none';
-  document.getElementById('loading').classList.add('show');
-  document.getElementById('reviewStep').style.display='none';
-  document.getElementById('confirmedStep').style.display='none';
-  document.getElementById('reviewBtns').style.display='none';
-  document.getElementById('confirmedBtns').style.display='none';
-  document.getElementById('generateBtn').disabled=true;
+      // Show loading
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('loading').classList.add('show');
+      document.getElementById('reviewStep').style.display = 'none';
+      document.getElementById('confirmedStep').style.display = 'none';
+      document.getElementById('reviewBtns').style.display = 'none';
+      document.getElementById('confirmedBtns').style.display = 'none';
+      document.getElementById('generateBtn').disabled = true;
 
-  try {
-    const res = await fetch(API+'/api/generate', {
-      method:'POST',
-      headers:{'Content-Type':'application/json', Authorization:'Bearer '+token},
-      body: JSON.stringify({ systemPrompt:sys, userMessage:userMsg, pattern:currentPattern, monkMode })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+      try {
+        const res = await fetch(API + '/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ systemPrompt: sys, userMessage: userMsg, pattern: currentPattern, monkMode })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
 
-    document.getElementById('editArea').value = data.result;
-    document.getElementById('loading').classList.remove('show');
-    document.getElementById('reviewStep').style.display='block';
-    document.getElementById('reviewBtns').style.display='flex';
-    document.getElementById('printSubtitle').textContent='จัดทำโดย Lab Interpreter'+(monkMode?' (ฉบับพระสงฆ์)':'')+' — กรุณาปรึกษาแพทย์เพิ่มเติม';
-  } catch(err) {
-    document.getElementById('loading').classList.remove('show');
-    document.getElementById('placeholder').style.display='flex';
-    alert('ข้อผิดพลาด: '+err.message);
-  }
-  document.getElementById('generateBtn').disabled=false;
-}
+        document.getElementById('editArea').value = data.result;
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('reviewStep').style.display = 'block';
+        document.getElementById('reviewBtns').style.display = 'flex';
+        document.getElementById('printSubtitle').textContent = 'จัดทำโดย Lab Interpreter' + (monkMode ? ' (ฉบับพระสงฆ์)' : '') + ' — กรุณาปรึกษาแพทย์เพิ่มเติม';
+      } catch (err) {
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('placeholder').style.display = 'flex';
+        alert('ข้อผิดพลาด: ' + err.message);
+      }
+      document.getElementById('generateBtn').disabled = false;
+    }
 
-// ===== Review Workflow =====
-function confirmResult() {
-  const name = document.getElementById('reviewerName').value.trim();
-  if (!name) { alert('กรุณาระบุชื่อผู้ตรวจสอบ'); return; }
-  const role = document.getElementById('reviewerRole').value;
-  const now = new Date().toLocaleString('th-TH');
-  const reviewer = `${role} ${name}`;
-  document.getElementById('resultText').textContent = document.getElementById('editArea').value;
-  document.getElementById('confirmedInfo').textContent = `ตรวจสอบโดย ${reviewer} เมื่อ ${now}`;
-  document.getElementById('printReviewer').textContent = reviewer;
-  document.getElementById('reviewStep').style.display='none';
-  document.getElementById('reviewBtns').style.display='none';
-  document.getElementById('confirmedStep').style.display='block';
-  document.getElementById('confirmedBtns').style.display='flex';
-}
+    // ===== Review Workflow =====
+    function confirmResult() {
+      const name = document.getElementById('reviewerName').value.trim();
+      if (!name) { alert('กรุณาระบุชื่อผู้ตรวจสอบ'); return; }
+      const role = document.getElementById('reviewerRole').value;
+      const now = new Date().toLocaleString('th-TH');
+      const reviewer = `${role} ${name}`;
+      document.getElementById('resultText').textContent = document.getElementById('editArea').value;
+      document.getElementById('confirmedInfo').textContent = `ตรวจสอบโดย ${reviewer} เมื่อ ${now}`;
+      document.getElementById('printReviewer').textContent = reviewer;
+      document.getElementById('reviewStep').style.display = 'none';
+      document.getElementById('reviewBtns').style.display = 'none';
+      document.getElementById('confirmedStep').style.display = 'block';
+      document.getElementById('confirmedBtns').style.display = 'flex';
+    }
 
-function backToEdit() {
-  document.getElementById('editArea').value = document.getElementById('resultText').textContent;
-  document.getElementById('confirmedStep').style.display='none';
-  document.getElementById('confirmedBtns').style.display='none';
-  document.getElementById('reviewStep').style.display='block';
-  document.getElementById('reviewBtns').style.display='flex';
-}
+    function backToEdit() {
+      document.getElementById('editArea').value = document.getElementById('resultText').textContent;
+      document.getElementById('confirmedStep').style.display = 'none';
+      document.getElementById('confirmedBtns').style.display = 'none';
+      document.getElementById('reviewStep').style.display = 'block';
+      document.getElementById('reviewBtns').style.display = 'flex';
+    }
 
-function printResult() {
-  document.getElementById('printDate').textContent = new Date().toLocaleString('th-TH');
-  document.getElementById('printTitle').textContent = monkMode ? '🙏 คำอธิบายผลตรวจสังขารธาตุ ถวายพระคุณเจ้า' : '🔬 คำอธิบายผลตรวจเลือดของท่าน';
-  window.print();
-}
+    function printResult() {
+      document.getElementById('printDate').textContent = new Date().toLocaleString('th-TH');
+      document.getElementById('printTitle').textContent = monkMode ? '🙏 คำอธิบายผลตรวจสังขารธาตุ ถวายพระคุณเจ้า' : '🔬 คำอธิบายผลตรวจเลือดของท่าน';
+      window.print();
+    }
 
-function copyResult() {
-  navigator.clipboard.writeText(document.getElementById('resultText').textContent).then(()=>{
-    const b=event.target; b.textContent='✅ Copied!'; setTimeout(()=>b.textContent='📋 Copy',2000);
-  });
-}
+    function copyResult() {
+      navigator.clipboard.writeText(document.getElementById('resultText').textContent).then(() => {
+        const b = event.target; b.textContent = '✅ Copied!'; setTimeout(() => b.textContent = '📋 Copy', 2000);
+      });
+    }
 
-function clearAll() {
-  ['patientHistory','labValues','extraNotes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('editArea').value='';
-  document.getElementById('resultText').textContent='';
-  ['reviewStep','confirmedStep'].forEach(id=>document.getElementById(id).style.display='none');
-  ['reviewBtns','confirmedBtns'].forEach(id=>document.getElementById(id).style.display='none');
-  document.getElementById('placeholder').style.display='flex';
-}
+    function clearAll() {
+      ['patientHistory', 'labValues', 'extraNotes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('editArea').value = '';
+      document.getElementById('resultText').textContent = '';
+      ['reviewStep', 'confirmedStep'].forEach(id => document.getElementById(id).style.display = 'none');
+      ['reviewBtns', 'confirmedBtns'].forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById('placeholder').style.display = 'flex';
+    }
 
-// ===== Init =====
-checkSession();
-</script>
+    // ===== Init =====
+    checkSession();
+  </script>
 </body>
+
 </html>
