@@ -164,7 +164,7 @@ async function handleGenerate(req: Request) {
   const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) return json({ error: "ระบบยังไม่ได้ตั้งค่า API Key" }, 500);
 
-  const model = Deno.env.get("OPENROUTER_MODEL") || "google/gemini-2.0-flash:free";
+  const model = Deno.env.get("OPENROUTER_MODEL") || "meta-llama/llama-3.3-70b-instruct:free";
 
   const { systemPrompt, userMessage, pattern, monkMode } = await req.json();
 
