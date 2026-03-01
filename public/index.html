@@ -927,9 +927,23 @@
     }
 
     /* Print */
+    /* Print Styles */
     @media print {
+      @page {
+        margin: 18mm 15mm 18mm 15mm;
+        size: A4 portrait;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
       body {
         background: white;
+        font-size: 13pt;
+        line-height: 1.8;
+        color: #222;
       }
 
       .header,
@@ -939,7 +953,10 @@
       .no-print,
       .lock-screen,
       #reviewStep,
-      .step-banner {
+      .step-banner,
+      .result-placeholder,
+      .loading,
+      .card-header {
         display: none !important;
       }
 
@@ -954,38 +971,141 @@
         border: none;
       }
 
-      .card-header {
-        background: white;
-        border-bottom: 2px solid #333;
-        color: #333;
+      .card-body {
+        padding: 0;
       }
 
+      /* Print Header */
       .print-header {
         display: block !important;
         text-align: center;
-        padding: 20px 0;
-        border-bottom: 2px solid #333;
-        margin-bottom: 20px;
+        padding: 0 0 16pt 0;
+        margin-bottom: 16pt;
+        border-bottom: 2.5pt solid #1A6B5A;
       }
 
+      .print-logo-row {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 12pt;
+        margin-bottom: 6pt;
+      }
+
+      .print-logo-icon {
+        font-size: 32pt;
+      }
+
+      .print-logo-text {
+        text-align: left;
+      }
+
+      .print-logo-text h2 {
+        font-size: 18pt;
+        font-weight: 700;
+        color: #1A6B5A;
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      .print-logo-text .print-org {
+        font-size: 10pt;
+        color: #555;
+        margin: 0;
+      }
+
+      .print-title-main {
+        font-size: 16pt;
+        font-weight: 700;
+        color: #222;
+        margin: 10pt 0 4pt;
+      }
+
+      .print-subtitle {
+        font-size: 10pt;
+        color: #666;
+        margin: 0;
+      }
+
+      .print-date-line {
+        font-size: 9pt;
+        color: #888;
+        margin-top: 6pt;
+      }
+
+      /* Result Content */
+      .result-text {
+        font-size: 13pt;
+        line-height: 2;
+        color: #222;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      /* Print Footer */
       .print-footer {
         display: block !important;
-        margin-top: 30px;
-        padding-top: 14px;
-        border-top: 1px solid #ccc;
-        font-size: 11px;
-        color: #999;
-        text-align: center;
+        margin-top: 24pt;
+        padding-top: 12pt;
+        border-top: 1.5pt solid #1A6B5A;
       }
 
-      .result-text {
-        font-size: 14px;
-        line-height: 1.7;
+      .print-footer-grid {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16pt;
+      }
+
+      .print-footer-left {
+        text-align: left;
+      }
+
+      .print-footer-right {
+        text-align: right;
+      }
+
+      .print-reviewer-label {
+        font-size: 9pt;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5pt;
+      }
+
+      .print-reviewer-name {
+        font-size: 12pt;
+        font-weight: 700;
+        color: #222;
+        margin-top: 2pt;
+      }
+
+      .print-disclaimer {
+        margin-top: 14pt;
+        padding: 10pt 14pt;
+        background: #f8f8f8;
+        border: 1pt solid #ddd;
+        border-radius: 6pt;
+        font-size: 9pt;
+        color: #666;
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      .print-hospital-footer {
+        margin-top: 10pt;
+        text-align: center;
+        font-size: 8pt;
+        color: #aaa;
       }
     }
 
     .print-header,
     .print-footer {
+      display: none;
+    }
+
+    .print-logo-row,
+    .print-footer-grid {
       display: none;
     }
   </style>
@@ -1171,8 +1291,16 @@
         </div>
         <div class="card-body">
           <div class="print-header">
-            <h2 id="printTitle">🔬 คำอธิบายผลตรวจเลือดของท่าน</h2>
-            <p id="printSubtitle">จัดทำโดยระบบ Lab Interpreter — กรุณาปรึกษาแพทย์เพิ่มเติม</p>
+            <div class="print-logo-row">
+              <span class="print-logo-icon">🔬</span>
+              <div class="print-logo-text">
+                <h2>Lab Interpreter</h2>
+                <p class="print-org">อายุรกรรม โรงพยาบาลสงฆ์</p>
+              </div>
+            </div>
+            <div class="print-title-main" id="printTitle">🩺 คำอธิบายผลตรวจเลือดของท่าน</div>
+            <p class="print-subtitle" id="printSubtitle">จัดทำโดยระบบ Lab Interpreter — กรุณาปรึกษาแพทย์เพิ่มเติม</p>
+            <div class="print-date-line" id="printDateLine"></div>
           </div>
           <div class="result-placeholder" id="placeholder">
             <div class="big-icon">🩺</div>
@@ -1229,9 +1357,23 @@
           </div>
 
           <div class="print-footer">
-            ⚕️ ตรวจสอบโดย <span id="printReviewer"></span><br>
-            สร้างโดย AI ไม่ใช่การวินิจฉัยโรค กรุณาปฏิบัติตามคำแนะนำของแพทย์<br>
-            พิมพ์เมื่อ: <span id="printDate"></span>
+            <div class="print-footer-grid">
+              <div class="print-footer-left">
+                <div class="print-reviewer-label">ตรวจสอบโดย</div>
+                <div class="print-reviewer-name" id="printReviewer"></div>
+              </div>
+              <div class="print-footer-right">
+                <div class="print-reviewer-label">วันที่พิมพ์</div>
+                <div class="print-reviewer-name" id="printDate"></div>
+              </div>
+            </div>
+            <div class="print-disclaimer">
+              ⚠️ เอกสารนี้สร้างโดยระบบ AI เพื่อช่วยอธิบายผลตรวจเลือดเบื้องต้น <strong>ไม่ใช่การวินิจฉัยโรค</strong><br>
+              กรุณาปฏิบัติตามคำแนะนำของแพทย์ผู้ดูแลเสมอ
+            </div>
+            <div class="print-hospital-footer">
+              อายุรกรรม โรงพยาบาลสงฆ์ • Lab Interpreter System • © 2026 directed by Uradev
+            </div>
           </div>
         </div>
 
@@ -1611,8 +1753,11 @@
     }
 
     function printResult() {
-      document.getElementById('printDate').textContent = new Date().toLocaleString('th-TH');
-      document.getElementById('printTitle').textContent = monkMode ? '🙏 คำอธิบายผลตรวจสังขารธาตุ ถวายพระคุณเจ้า' : '🔬 คำอธิบายผลตรวจเลือดของท่าน';
+      const now = new Date().toLocaleString('th-TH');
+      document.getElementById('printDate').textContent = now;
+      document.getElementById('printDateLine').textContent = 'วันที่พิมพ์: ' + now;
+      document.getElementById('printTitle').textContent = monkMode ? '🙏 คำอธิบายผลตรวจสังขารธาตุ ถวายพระคุณเจ้า' : '🩺 คำอธิบายผลตรวจเลือดของท่าน';
+      document.getElementById('printSubtitle').textContent = 'จัดทำโดย Lab Interpreter' + (monkMode ? ' (ฉบับพระสงฆ์)' : '') + ' — กรุณาปรึกษาแพทย์เพิ่มเติม';
       window.print();
     }
 
