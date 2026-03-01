@@ -926,6 +926,91 @@
       background: #FDEDEC;
     }
 
+    /* Knowledge Base */
+    .kb-item {
+      padding: 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #FAFCFB;
+    }
+
+    .kb-item.inactive {
+      opacity: 0.5;
+    }
+
+    .kb-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .kb-item-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--primary);
+    }
+
+    .kb-item-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .kb-item-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+
+    .kb-item-actions button:hover {
+      background: var(--primary-light);
+    }
+
+    .kb-item-content {
+      font-size: 12px;
+      color: var(--text-light);
+      white-space: pre-wrap;
+      line-height: 1.5;
+      max-height: 80px;
+      overflow: hidden;
+    }
+
+    .kb-item-meta {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    .kb-form {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--primary-light);
+      border-radius: 8px;
+    }
+
+    .kb-form input,
+    .kb-form textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 13px;
+      margin-bottom: 8px;
+      background: white;
+    }
+
+    .kb-form textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
     /* Print */
     /* Print Styles */
     @media print {
@@ -1147,6 +1232,7 @@
     </div>
     <div class="header-right">
       <span class="monk-badge" id="monkBadge">🙏 ภาษาสงฆ์</span>
+      <button class="hdr-btn" onclick="showKnowledgeModal()" id="kbBtn" style="display:none">📚 คลังความรู้</button>
       <button class="hdr-btn" onclick="showStatsModal()" id="statsBtn" style="display:none">📊 สถิติ</button>
       <button class="hdr-btn" onclick="showAdminModal()" id="adminBtn" style="display:none">👥 จัดการผู้ใช้</button>
       <button class="hdr-btn" onclick="doLogout()">🔒 ออกจากระบบ</button>
@@ -1199,6 +1285,36 @@
       </div>
       <div class="modal-btns">
         <button class="cancel" onclick="closeStatsModal()">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== KNOWLEDGE BASE MODAL ===== -->
+  <div class="modal-overlay" id="kbModal">
+    <div class="modal" style="max-width:580px;">
+      <h3>📚 คลังความรู้ / Guidelines</h3>
+      <p>เพิ่มเนื้อหาอ้างอิงที่ AI จะใช้ประกอบการอธิบายผล Lab ทุกครั้ง</p>
+      <div id="kbList">
+        <div style="text-align:center;padding:16px;color:var(--text-light);">กำลังโหลด...</div>
+      </div>
+      <div class="kb-form" id="kbForm">
+        <input type="hidden" id="kbEditId">
+        <input type="text" id="kbTitle" placeholder="หัวข้อ เช่น Guideline เบาหวาน 2026">
+        <textarea id="kbContent" placeholder="เนื้อหา เช่น:
+- HbA1c เป้าหมาย ≤7.0%
+- FBS เป้าหมาย 80-130 mg/dL
+- ควรตรวจ HbA1c ทุก 3 เดือน"></textarea>
+        <div style="display:flex;gap:8px;">
+          <button class="save"
+            style="flex:1;padding:8px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--primary);color:white;"
+            onclick="saveKnowledge()" id="kbSaveBtn">➕ เพิ่ม</button>
+          <button class="cancel"
+            style="padding:8px 16px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;border:none;background:#EEF2F0;display:none;"
+            onclick="cancelEditKnowledge()" id="kbCancelBtn">ยกเลิก</button>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="cancel" onclick="closeKnowledgeModal()">ปิด</button>
       </div>
     </div>
   </div>
@@ -1442,6 +1558,7 @@
       if (currentUser.isAdmin) {
         document.getElementById('adminBtn').style.display = 'inline-flex';
         document.getElementById('statsBtn').style.display = 'inline-flex';
+        document.getElementById('kbBtn').style.display = 'inline-flex';
       }
     }
 
@@ -1455,6 +1572,7 @@
       document.getElementById('loginError').textContent = '';
       document.getElementById('adminBtn').style.display = 'none';
       document.getElementById('statsBtn').style.display = 'none';
+      document.getElementById('kbBtn').style.display = 'none';
     }
 
     // Check existing session on load
@@ -1620,6 +1738,103 @@
       const data = await res.json();
       alert(data.message || data.error);
       showStatsModal();
+    }
+
+    // ===== Knowledge Base =====
+    async function showKnowledgeModal() {
+      document.getElementById('kbModal').classList.add('show');
+      cancelEditKnowledge();
+      await loadKnowledgeList();
+    }
+
+    function closeKnowledgeModal() { document.getElementById('kbModal').classList.remove('show'); }
+
+    async function loadKnowledgeList() {
+      document.getElementById('kbList').innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-light);">กำลังโหลด...</div>';
+      try {
+        const res = await fetch(API + '/api/admin/knowledge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ action: 'list' })
+        });
+        const data = await res.json();
+        if (data.items.length === 0) {
+          document.getElementById('kbList').innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-light);">ยังไม่มีข้อมูล — เพิ่ม Guideline ด้านล่าง</div>';
+          return;
+        }
+        let html = '';
+        for (const item of data.items) {
+          const active = Number(item.is_active);
+          html += `<div class="kb-item ${active ? '' : 'inactive'}">
+            <div class="kb-item-header">
+              <span class="kb-item-title">${active ? '✅' : '⏸️'} ${item.title}</span>
+              <div class="kb-item-actions">
+                <button onclick="toggleKnowledge(${item.id}, ${active ? 'false' : 'true'})" title="${active ? 'ปิด' : 'เปิด'}การใช้งาน">${active ? '⏸️' : '▶️'}</button>
+                <button onclick="editKnowledge(${item.id}, '${item.title.replace(/'/g, "\\'")}', \`${item.content.replace(/`/g, '\\`')}\`)">✏️</button>
+                <button onclick="deleteKnowledge(${item.id})">🗑️</button>
+              </div>
+            </div>
+            <div class="kb-item-content">${item.content}</div>
+            <div class="kb-item-meta">อัปเดต: ${item.updated_at}</div>
+          </div>`;
+        }
+        document.getElementById('kbList').innerHTML = html;
+      } catch (e) {
+        document.getElementById('kbList').innerHTML = '<div style="text-align:center;padding:16px;color:var(--danger);">โหลดไม่สำเร็จ</div>';
+      }
+    }
+
+    async function saveKnowledge() {
+      const editId = document.getElementById('kbEditId').value;
+      const title = document.getElementById('kbTitle').value.trim();
+      const content = document.getElementById('kbContent').value.trim();
+      if (!title || !content) { alert('กรุณาใส่หัวข้อและเนื้อหา'); return; }
+      const action = editId ? 'update' : 'add';
+      const body = editId ? { action, id: Number(editId), title, content } : { action, title, content };
+      const res = await fetch(API + '/api/admin/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (data.error) alert(data.error);
+      cancelEditKnowledge();
+      await loadKnowledgeList();
+    }
+
+    function editKnowledge(id, title, content) {
+      document.getElementById('kbEditId').value = id;
+      document.getElementById('kbTitle').value = title;
+      document.getElementById('kbContent').value = content;
+      document.getElementById('kbSaveBtn').textContent = '💾 บันทึก';
+      document.getElementById('kbCancelBtn').style.display = 'inline-block';
+    }
+
+    function cancelEditKnowledge() {
+      document.getElementById('kbEditId').value = '';
+      document.getElementById('kbTitle').value = '';
+      document.getElementById('kbContent').value = '';
+      document.getElementById('kbSaveBtn').textContent = '➕ เพิ่ม';
+      document.getElementById('kbCancelBtn').style.display = 'none';
+    }
+
+    async function toggleKnowledge(id, isActive) {
+      await fetch(API + '/api/admin/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'toggle', id, isActive })
+      });
+      await loadKnowledgeList();
+    }
+
+    async function deleteKnowledge(id) {
+      if (!confirm('ลบความรู้นี้?')) return;
+      await fetch(API + '/api/admin/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'delete', id })
+      });
+      await loadKnowledgeList();
     }
 
     // ===== Patterns =====

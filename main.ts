@@ -50,6 +50,16 @@ async function initDB() {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS knowledge_base (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Create default admin if no users exist
   const count = await db.execute("SELECT COUNT(*) as c FROM users");
   if (Number(count.rows[0].c) === 0) {
@@ -176,6 +186,17 @@ async function handleGenerate(req: Request) {
 
   const { systemPrompt, userMessage, pattern, monkMode } = await req.json();
 
+  // Fetch active knowledge base content
+  const kbResult = await db.execute("SELECT title, content FROM knowledge_base WHERE is_active = 1 ORDER BY id");
+  let finalPrompt = systemPrompt;
+  if (kbResult.rows.length > 0) {
+    let kbText = "\n\n📚 ข้อมูลอ้างอิง/Guideline (ใช้ประกอบการอธิบาย):";
+    for (const row of kbResult.rows) {
+      kbText += `\n\n【${row.title}】\n${row.content}`;
+    }
+    finalPrompt += kbText;
+  }
+
   // Log usage
   await db.execute({
     sql: "INSERT INTO usage_log (user_id, action, pattern, monk_mode) VALUES (?, 'generate', ?, ?)",
@@ -194,7 +215,7 @@ async function handleGenerate(req: Request) {
       body: JSON.stringify({
         model,
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: finalPrompt },
           { role: "user", content: userMessage },
         ],
         temperature: 0.3,
@@ -382,6 +403,58 @@ async function serveStatic(path: string): Promise<Response> {
   }
 }
 
+// POST /api/admin/knowledge — manage knowledge base (admin only)
+async function handleAdminKnowledge(req: Request) {
+  const session = await getSession(req);
+  if (!session) return json({ error: "กรุณา login ก่อน" }, 401);
+  const adminCheck = await db.execute({ sql: "SELECT is_admin FROM users WHERE id = ?", args: [session.userId] });
+  if (!adminCheck.rows[0]?.is_admin) return json({ error: "ไม่มีสิทธิ์ admin" }, 403);
+
+  const { action, id, title, content, isActive } = await req.json();
+
+  if (action === "list") {
+    const items = await db.execute("SELECT id, title, content, is_active, updated_at FROM knowledge_base ORDER BY id");
+    return json({ items: items.rows });
+  }
+
+  if (action === "add") {
+    if (!title || !content) return json({ error: "กรุณาใส่หัวข้อและเนื้อหา" }, 400);
+    await db.execute({
+      sql: "INSERT INTO knowledge_base (title, content) VALUES (?, ?)",
+      args: [title, content],
+    });
+    return json({ success: true });
+  }
+
+  if (action === "update") {
+    if (!id) return json({ error: "ระบุ id" }, 400);
+    if (title && content) {
+      await db.execute({
+        sql: "UPDATE knowledge_base SET title = ?, content = ?, updated_at = datetime('now') WHERE id = ?",
+        args: [title, content, id],
+      });
+    }
+    return json({ success: true });
+  }
+
+  if (action === "toggle") {
+    if (!id) return json({ error: "ระบุ id" }, 400);
+    await db.execute({
+      sql: "UPDATE knowledge_base SET is_active = ?, updated_at = datetime('now') WHERE id = ?",
+      args: [isActive ? 1 : 0, id],
+    });
+    return json({ success: true });
+  }
+
+  if (action === "delete") {
+    if (!id) return json({ error: "ระบุ id" }, 400);
+    await db.execute({ sql: "DELETE FROM knowledge_base WHERE id = ?", args: [id] });
+    return json({ success: true });
+  }
+
+  return json({ error: "unknown action" }, 400);
+}
+
 // ===== Main Router =====
 async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
@@ -398,6 +471,7 @@ async function handler(req: Request): Promise<Response> {
   if (url.pathname === "/api/generate" && req.method === "POST") return handleGenerate(req);
   if (url.pathname === "/api/admin/users" && req.method === "POST") return handleAdminUsers(req);
   if (url.pathname === "/api/admin/stats" && req.method === "POST") return handleAdminStats(req);
+  if (url.pathname === "/api/admin/knowledge" && req.method === "POST") return handleAdminKnowledge(req);
 
   // Static files
   if (url.pathname === "/" || url.pathname === "/index.html") return serveStatic("/index.html");
