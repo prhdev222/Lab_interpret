@@ -86,6 +86,11 @@ async function cleanSessions() {
   await db.execute({ sql: "DELETE FROM sessions WHERE expires_at < ?", args: [Date.now()] });
 }
 
+// ===== Auto-clean usage_log older than 30 days =====
+async function cleanOldLogs() {
+  await db.execute("DELETE FROM usage_log WHERE created_at < datetime('now', '-30 days')");
+}
+
 // ===== CORS & Response Helpers =====
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,6 +109,8 @@ async function getSession(req: Request) {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
   const token = auth.slice(7);
+  // Auto-clean expired sessions on every session check
+  await cleanSessions();
   const result = await db.execute({
     sql: "SELECT user_id, username, role, display_name, expires_at FROM sessions WHERE token = ?",
     args: [token],
@@ -144,6 +151,7 @@ async function handleLogin(req: Request) {
   });
 
   await cleanSessions();
+  await cleanOldLogs();
 
   return json({
     token,
@@ -266,7 +274,68 @@ async function handleAdminUsers(req: Request) {
     return json({ success: true });
   }
 
+  if (action === "clear_sessions") {
+    // Clear all sessions except current admin's
+    const auth = req.headers.get("Authorization");
+    const currentToken = auth?.startsWith("Bearer ") ? auth.slice(7) : "";
+    await db.execute({ sql: "DELETE FROM sessions WHERE token != ?", args: [currentToken] });
+    return json({ success: true, message: "ล้าง sessions ทั้งหมดแล้ว (ยกเว้นของคุณ)" });
+  }
+
+  if (action === "clear_logs") {
+    await db.execute("DELETE FROM usage_log");
+    return json({ success: true, message: "ล้าง usage log ทั้งหมดแล้ว" });
+  }
+
   return json({ error: "unknown action" }, 400);
+}
+
+// POST /api/admin/stats — usage statistics (admin only)
+async function handleAdminStats(req: Request) {
+  const session = await getSession(req);
+  if (!session) return json({ error: "กรุณา login ก่อน" }, 401);
+  const adminCheck = await db.execute({ sql: "SELECT is_admin FROM users WHERE id = ?", args: [session.userId] });
+  if (!adminCheck.rows[0]?.is_admin) return json({ error: "ไม่มีสิทธิ์ admin" }, 403);
+
+  // Daily stats (last 7 days)
+  const daily = await db.execute(`
+    SELECT date(created_at) as day, COUNT(*) as count
+    FROM usage_log
+    WHERE created_at >= datetime('now', '-7 days')
+    GROUP BY date(created_at)
+    ORDER BY day DESC
+  `);
+
+  // Per-user stats (last 30 days)
+  const perUser = await db.execute(`
+    SELECT u.display_name, u.username, COUNT(l.id) as count
+    FROM usage_log l
+    JOIN users u ON u.id = l.user_id
+    WHERE l.created_at >= datetime('now', '-30 days')
+    GROUP BY l.user_id
+    ORDER BY count DESC
+  `);
+
+  // Pattern stats (last 30 days)
+  const perPattern = await db.execute(`
+    SELECT pattern, COUNT(*) as count
+    FROM usage_log
+    WHERE created_at >= datetime('now', '-30 days')
+    GROUP BY pattern
+    ORDER BY count DESC
+  `);
+
+  // Counts
+  const sessionCount = await db.execute("SELECT COUNT(*) as c FROM sessions WHERE expires_at >= " + Date.now());
+  const logCount = await db.execute("SELECT COUNT(*) as c FROM usage_log");
+
+  return json({
+    daily: daily.rows,
+    perUser: perUser.rows,
+    perPattern: perPattern.rows,
+    activeSessions: Number(sessionCount.rows[0].c),
+    totalLogs: Number(logCount.rows[0].c),
+  });
 }
 
 // GET /api/me — check session
@@ -328,6 +397,7 @@ async function handler(req: Request): Promise<Response> {
   if (url.pathname === "/api/me" && req.method === "GET") return handleMe(req);
   if (url.pathname === "/api/generate" && req.method === "POST") return handleGenerate(req);
   if (url.pathname === "/api/admin/users" && req.method === "POST") return handleAdminUsers(req);
+  if (url.pathname === "/api/admin/stats" && req.method === "POST") return handleAdminStats(req);
 
   // Static files
   if (url.pathname === "/" || url.pathname === "/index.html") return serveStatic("/index.html");

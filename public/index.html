@@ -813,6 +813,119 @@
       text-decoration: underline;
     }
 
+    /* Stats Modal */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    @media(max-width:500px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-card {
+      background: var(--primary-light);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 2px;
+    }
+
+    .stats-section {
+      margin-bottom: 16px;
+    }
+
+    .stats-section h4 {
+      font-size: 14px;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .stats-table th {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 6px 10px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .stats-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stats-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .stats-empty {
+      text-align: center;
+      color: var(--text-light);
+      font-size: 13px;
+      padding: 12px;
+    }
+
+    .clear-section {
+      margin-top: 16px;
+      padding: 14px;
+      background: #FEF5E7;
+      border: 1px solid #F0C78A;
+      border-radius: 10px;
+    }
+
+    .clear-section h4 {
+      font-size: 13px;
+      color: #8B5E1A;
+      margin-bottom: 10px;
+    }
+
+    .clear-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-clear {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid var(--danger);
+      background: white;
+      color: var(--danger);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-clear:hover {
+      background: #FDEDEC;
+    }
+
     /* Print */
     @media print {
       body {
@@ -914,6 +1027,7 @@
     </div>
     <div class="header-right">
       <span class="monk-badge" id="monkBadge">🙏 ภาษาสงฆ์</span>
+      <button class="hdr-btn" onclick="showStatsModal()" id="statsBtn" style="display:none">📊 สถิติ</button>
       <button class="hdr-btn" onclick="showAdminModal()" id="adminBtn" style="display:none">👥 จัดการผู้ใช้</button>
       <button class="hdr-btn" onclick="doLogout()">🔒 ออกจากระบบ</button>
     </div>
@@ -944,6 +1058,27 @@
       <div class="modal-btns" style="margin-top:12px;">
         <button class="cancel" onclick="closeAdminModal()">ปิด</button>
         <button class="save" onclick="addUser()">เพิ่มผู้ใช้</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STATS MODAL ===== -->
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal" style="max-width:550px;">
+      <h3>📊 สถิติการใช้งาน</h3>
+      <p>ข้อมูลย้อนหลัง 30 วัน (auto-clean อัตโนมัติ)</p>
+      <div id="statsContent">
+        <div style="text-align:center;padding:20px;color:var(--text-light);">กำลังโหลด...</div>
+      </div>
+      <div class="clear-section">
+        <h4>⚠️ ล้างข้อมูล</h4>
+        <div class="clear-btns">
+          <button class="btn-clear" onclick="clearSessions()">🗑️ ล้าง Sessions</button>
+          <button class="btn-clear" onclick="clearLogs()">🗑️ ล้าง Usage Logs</button>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="cancel" onclick="closeStatsModal()">ปิด</button>
       </div>
     </div>
   </div>
@@ -1162,7 +1297,10 @@
       for (let i = 0; i < sel.options.length; i++) {
         if (sel.options[i].value === (roleMap[currentUser.role] || 'อื่นๆ')) { sel.selectedIndex = i; break; }
       }
-      if (currentUser.isAdmin) document.getElementById('adminBtn').style.display = 'inline-flex';
+      if (currentUser.isAdmin) {
+        document.getElementById('adminBtn').style.display = 'inline-flex';
+        document.getElementById('statsBtn').style.display = 'inline-flex';
+      }
     }
 
     async function doLogout() {
@@ -1174,6 +1312,7 @@
       document.getElementById('loginPin').value = '';
       document.getElementById('loginError').textContent = '';
       document.getElementById('adminBtn').style.display = 'none';
+      document.getElementById('statsBtn').style.display = 'none';
     }
 
     // Check existing session on load
@@ -1250,6 +1389,95 @@
       });
       const data = await res.json();
       if (data.error) alert(data.error); else alert(`✅ เปลี่ยน PIN ของ ${username} แล้ว`);
+    }
+
+    // ===== Stats =====
+    async function showStatsModal() {
+      document.getElementById('statsModal').classList.add('show');
+      document.getElementById('statsContent').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);">กำลังโหลด...</div>';
+      try {
+        const res = await fetch(API + '/api/admin/stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data.error) { document.getElementById('statsContent').innerHTML = `<div class="stats-empty">${data.error}</div>`; return; }
+        renderStats(data);
+      } catch (e) {
+        document.getElementById('statsContent').innerHTML = '<div class="stats-empty">เชื่อมต่อ server ไม่ได้</div>';
+      }
+    }
+
+    function closeStatsModal() { document.getElementById('statsModal').classList.remove('show'); }
+
+    function renderStats(data) {
+      const patternNames = { standard: '📄 มาตรฐาน', simple: '🟢 เรียบง่าย', detailed: '📊 ละเอียด', custom: '✏️ กำหนดเอง', unknown: '❓ ไม่ระบุ' };
+      let html = '';
+
+      // Summary cards
+      html += '<div class="stats-grid">';
+      html += `<div class="stat-card"><div class="stat-number">${data.activeSessions}</div><div class="stat-label">Sessions ที่ active</div></div>`;
+      html += `<div class="stat-card"><div class="stat-number">${data.totalLogs}</div><div class="stat-label">Usage logs ทั้งหมด</div></div>`;
+      html += '</div>';
+
+      // Daily stats
+      html += '<div class="stats-section"><h4>📅 การใช้งานรายวัน (7 วัน)</h4>';
+      if (data.daily.length === 0) {
+        html += '<div class="stats-empty">ไม่มีข้อมูล</div>';
+      } else {
+        html += '<table class="stats-table"><tr><th>วันที่</th><th>จำนวนครั้ง</th></tr>';
+        for (const d of data.daily) { html += `<tr><td>${d.day}</td><td>${d.count}</td></tr>`; }
+        html += '</table>';
+      }
+      html += '</div>';
+
+      // Per-user stats
+      html += '<div class="stats-section"><h4>👤 ผู้ใช้งาน (30 วัน)</h4>';
+      if (data.perUser.length === 0) {
+        html += '<div class="stats-empty">ไม่มีข้อมูล</div>';
+      } else {
+        html += '<table class="stats-table"><tr><th>ชื่อ</th><th>Username</th><th>ครั้ง</th></tr>';
+        for (const u of data.perUser) { html += `<tr><td>${u.display_name}</td><td>${u.username}</td><td>${u.count}</td></tr>`; }
+        html += '</table>';
+      }
+      html += '</div>';
+
+      // Pattern stats
+      html += '<div class="stats-section"><h4>📋 Pattern ที่ใช้ (30 วัน)</h4>';
+      if (data.perPattern.length === 0) {
+        html += '<div class="stats-empty">ไม่มีข้อมูล</div>';
+      } else {
+        html += '<table class="stats-table"><tr><th>Pattern</th><th>ครั้ง</th></tr>';
+        for (const p of data.perPattern) { html += `<tr><td>${patternNames[p.pattern] || p.pattern}</td><td>${p.count}</td></tr>`; }
+        html += '</table>';
+      }
+      html += '</div>';
+
+      document.getElementById('statsContent').innerHTML = html;
+    }
+
+    async function clearSessions() {
+      if (!confirm('ล้าง sessions ทั้งหมด? (ผู้ใช้อื่นจะต้อง login ใหม่)')) return;
+      const res = await fetch(API + '/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'clear_sessions' })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+      showStatsModal();
+    }
+
+    async function clearLogs() {
+      if (!confirm('ล้าง usage log ทั้งหมด? (ข้อมูลสถิติจะหายไป)')) return;
+      const res = await fetch(API + '/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'clear_logs' })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+      showStatsModal();
     }
 
     // ===== Patterns =====
